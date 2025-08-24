@@ -16,6 +16,12 @@ export interface User {
   green_balance: number;
   blue_balance: number;
   red_balance: number;
+  rank: string;
+  experience_points: number;
+  daily_quota_used: number;
+  weekly_quota_used: number;
+  monthly_quota_used: number;
+  last_quota_reset: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -27,6 +33,12 @@ export interface Wish {
   author_id: string;
   assignee_id?: string;
   status: 'active' | 'completed' | 'cancelled';
+  category: string;
+  is_shared: boolean;
+  is_gift: boolean;
+  is_historical: boolean;
+  shared_approved_by?: string;
+  priority: number;
   created_at: Date;
   completed_at?: Date;
   metadata?: any;
@@ -40,14 +52,78 @@ export interface Transaction {
   amount: number;
   reason: string;
   reference_id?: string;
+  transaction_category: string;
+  experience_gained: number;
   created_at: Date;
   metadata?: any;
+}
+
+export interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  author_id: string;
+  assignee_id: string;
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'epic';
+  reward_type: string;
+  reward_amount: number;
+  experience_reward: number;
+  status: 'active' | 'completed' | 'expired' | 'cancelled';
+  due_date?: Date;
+  created_at: Date;
+  completed_at?: Date;
+  metadata: any;
+}
+
+export interface RandomEvent {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  reward_type: string;
+  reward_amount: number;
+  experience_reward: number;
+  status: 'active' | 'completed' | 'expired';
+  expires_at: Date;
+  created_at: Date;
+  completed_at?: Date;
+  completed_by?: string;
+  metadata: any;
+}
+
+export interface WishCategory {
+  id: string;
+  name: string;
+  emoji?: string;
+  color?: string;
+  created_at: Date;
+}
+
+export interface Rank {
+  id: string;
+  name: string;
+  min_experience: number;
+  daily_quota_bonus: number;
+  weekly_quota_bonus: number;
+  monthly_quota_bonus: number;
+  special_privileges: any;
+  emoji?: string;
+  created_at: Date;
+}
+
+export interface EconomySetting {
+  id: string;
+  setting_key: string;
+  setting_value: any;
+  description?: string;
+  updated_at: Date;
 }
 
 // Инициализация базы данных
 export async function initDatabase() {
   try {
-    // Создание таблицы пользователей
+    // Создание базовых таблиц (для обратной совместимости)
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -62,7 +138,6 @@ export async function initDatabase() {
       )
     `;
 
-    // Создание таблицы желаний
     await sql`
       CREATE TABLE IF NOT EXISTS wishes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -77,7 +152,6 @@ export async function initDatabase() {
       )
     `;
 
-    // Создание таблицы транзакций
     await sql`
       CREATE TABLE IF NOT EXISTS transactions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -92,7 +166,7 @@ export async function initDatabase() {
       )
     `;
 
-    // Создание индексов для производительности
+    // Базовые индексы
     await sql`CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_wishes_author ON wishes(author_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_wishes_assignee ON wishes(assignee_id)`;
@@ -100,11 +174,220 @@ export async function initDatabase() {
     await sql`CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_transactions_created ON transactions(created_at)`;
 
+    // Запуск миграций для расширенной функциональности
+    await runQuestEconomyMigrations();
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
     throw error;
   }
+}
+
+// Функция для запуска миграций квестовой экономической системы
+async function runQuestEconomyMigrations() {
+  try {
+    // Создание таблицы для отслеживания миграций
+    await sql`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL UNIQUE,
+        executed_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Проверяем, выполнена ли основная миграция
+    const existingMigrations = await sql`
+      SELECT filename FROM migrations WHERE filename = '001_quest_economy_system.sql'
+    `;
+
+    if (existingMigrations.length === 0) {
+      // Выполняем основную миграцию
+      await executeQuestEconomyMigration();
+      await sql`INSERT INTO migrations (filename) VALUES ('001_quest_economy_system.sql')`;
+      
+      // Выполняем миграцию с seed данными
+      await executeSeedDataMigration();
+      await sql`INSERT INTO migrations (filename) VALUES ('002_seed_data.sql')`;
+      
+      console.log('Quest economy system migrations completed successfully');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+    // Не прерываем инициализацию, если миграции не удались
+  }
+}
+
+// Выполнение основной миграции
+async function executeQuestEconomyMigration() {
+  // Расширение таблицы users
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS rank VARCHAR(50) DEFAULT 'Рядовой'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_points INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_quota_used INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_quota_used INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS monthly_quota_used INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_quota_reset DATE DEFAULT CURRENT_DATE`;
+
+  // Создание таблицы квестов
+  await sql`
+    CREATE TABLE IF NOT EXISTS quests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      title VARCHAR(200) NOT NULL,
+      description TEXT NOT NULL,
+      author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      assignee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      category VARCHAR(50) NOT NULL DEFAULT 'general',
+      difficulty VARCHAR(20) NOT NULL CHECK (difficulty IN ('easy', 'medium', 'hard', 'epic')),
+      reward_type VARCHAR(20) NOT NULL DEFAULT 'green',
+      reward_amount INTEGER NOT NULL DEFAULT 1,
+      experience_reward INTEGER DEFAULT 0,
+      status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired', 'cancelled')),
+      due_date TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
+      completed_at TIMESTAMP,
+      metadata JSONB DEFAULT '{}'
+    )
+  `;
+
+  // Создание таблицы случайных событий
+  await sql`
+    CREATE TABLE IF NOT EXISTS random_events (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      title VARCHAR(200) NOT NULL,
+      description TEXT NOT NULL,
+      reward_type VARCHAR(20) NOT NULL DEFAULT 'green',
+      reward_amount INTEGER NOT NULL DEFAULT 1,
+      experience_reward INTEGER DEFAULT 0,
+      status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      completed_at TIMESTAMP,
+      completed_by UUID REFERENCES users(id),
+      metadata JSONB DEFAULT '{}'
+    )
+  `;
+
+  // Расширение таблицы wishes
+  await sql`ALTER TABLE wishes ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'general'`;
+  await sql`ALTER TABLE wishes ADD COLUMN IF NOT EXISTS is_shared BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE wishes ADD COLUMN IF NOT EXISTS is_gift BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE wishes ADD COLUMN IF NOT EXISTS is_historical BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE wishes ADD COLUMN IF NOT EXISTS shared_approved_by UUID REFERENCES users(id)`;
+  await sql`ALTER TABLE wishes ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 1`;
+
+  // Создание таблицы категорий желаний
+  await sql`
+    CREATE TABLE IF NOT EXISTS wish_categories (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(100) NOT NULL UNIQUE,
+      emoji VARCHAR(10),
+      color VARCHAR(20),
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+
+  // Создание таблицы рангов
+  await sql`
+    CREATE TABLE IF NOT EXISTS ranks (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(100) NOT NULL UNIQUE,
+      min_experience INTEGER NOT NULL,
+      daily_quota_bonus INTEGER DEFAULT 0,
+      weekly_quota_bonus INTEGER DEFAULT 0,
+      monthly_quota_bonus INTEGER DEFAULT 0,
+      special_privileges JSONB DEFAULT '{}',
+      emoji VARCHAR(10),
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+
+  // Создание таблицы настроек экономики
+  await sql`
+    CREATE TABLE IF NOT EXISTS economy_settings (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      setting_key VARCHAR(100) NOT NULL UNIQUE,
+      setting_value JSONB NOT NULL,
+      description TEXT,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+
+  // Расширение таблицы транзакций
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transaction_category VARCHAR(50) DEFAULT 'manual'`;
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS experience_gained INTEGER DEFAULT 0`;
+
+  // Создание индексов
+  await sql`CREATE INDEX IF NOT EXISTS idx_quests_assignee_status ON quests(assignee_id, status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_quests_author_status ON quests(author_id, status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_events_user_status ON random_events(user_id, status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_wishes_category_status ON wishes(category, status)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_users_rank ON users(rank)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_users_experience ON users(experience_points)`;
+}
+
+// Выполнение миграции с seed данными
+async function executeSeedDataMigration() {
+  // Вставка категорий желаний
+  const categories = [
+    ['Общие', '📋', '#6B7280'],
+    ['Романтика', '💕', '#EC4899'],
+    ['Развлечения', '🎮', '#8B5CF6'],
+    ['Еда', '🍽️', '#F59E0B'],
+    ['Путешествия', '✈️', '#06B6D4'],
+    ['Спорт', '⚽', '#10B981'],
+    ['Дом', '🏠', '#F97316'],
+    ['Работа', '💼', '#374151'],
+    ['Здоровье', '🏥', '#EF4444'],
+    ['Образование', '📚', '#3B82F6'],
+    ['Хобби', '🎨', '#A855F7'],
+    ['Семья', '👨‍👩‍👧‍👦', '#84CC16']
+  ];
+
+  for (const [name, emoji, color] of categories) {
+    await sql`
+      INSERT INTO wish_categories (name, emoji, color) 
+      VALUES (${name}, ${emoji}, ${color})
+      ON CONFLICT (name) DO NOTHING
+    `;
+  }
+
+  // Вставка рангов
+  const ranks = [
+    ['Рядовой', 0, 0, 0, 0, '🪖', '{}'],
+    ['Ефрейтор', 100, 1, 2, 5, '🎖️', '{"can_create_medium_quests": true}'],
+    ['Младший сержант', 300, 2, 5, 10, '🏅', '{"can_create_hard_quests": true, "bonus_experience": 0.1}'],
+    ['Сержант', 600, 3, 8, 15, '🎗️', '{"can_create_epic_quests": true, "bonus_experience": 0.15}'],
+    ['Старший сержант', 1000, 4, 12, 20, '🏆', '{"can_approve_shared_wishes": true, "bonus_experience": 0.2}']
+  ];
+
+  for (const [name, minExp, dailyBonus, weeklyBonus, monthlyBonus, emoji, privileges] of ranks) {
+    await sql`
+      INSERT INTO ranks (name, min_experience, daily_quota_bonus, weekly_quota_bonus, monthly_quota_bonus, emoji, special_privileges) 
+      VALUES (${name}, ${minExp}, ${dailyBonus}, ${weeklyBonus}, ${monthlyBonus}, ${emoji}, ${privileges})
+      ON CONFLICT (name) DO NOTHING
+    `;
+  }
+
+  // Вставка настроек экономики
+  const settings = [
+    ['daily_gift_base_limit', '5', 'Base daily gift limit for all users'],
+    ['weekly_gift_base_limit', '20', 'Base weekly gift limit for all users'],
+    ['monthly_gift_base_limit', '50', 'Base monthly gift limit for all users'],
+    ['quest_experience_multiplier', '{"easy": 10, "medium": 25, "hard": 50, "epic": 100}', 'Experience points for completing quests by difficulty'],
+    ['event_experience_base', '15', 'Base experience points for completing random events']
+  ];
+
+  for (const [key, value, description] of settings) {
+    await sql`
+      INSERT INTO economy_settings (setting_key, setting_value, description) 
+      VALUES (${key}, ${value}, ${description})
+      ON CONFLICT (setting_key) DO NOTHING
+    `;
+  }
+
+  // Обновление существующих пользователей
+  await sql`UPDATE users SET rank = 'Рядовой' WHERE rank IS NULL OR rank = ''`;
 }
 
 // Пользователи
@@ -274,4 +557,194 @@ export async function getUserTransactions(userId: string, limit = 50): Promise<T
     LIMIT ${limit}
   `;
   return result as Transaction[];
+}
+
+// Quest Economy System Functions
+
+// Quests
+export async function createQuest(
+  title: string,
+  description: string,
+  authorId: string,
+  assigneeId: string,
+  category: string = 'general',
+  difficulty: 'easy' | 'medium' | 'hard' | 'epic' = 'easy',
+  rewardType: string = 'green',
+  rewardAmount: number = 1,
+  experienceReward: number = 0,
+  dueDate?: Date
+): Promise<Quest> {
+  const result = await sql`
+    INSERT INTO quests (title, description, author_id, assignee_id, category, difficulty, reward_type, reward_amount, experience_reward, due_date)
+    VALUES (${title}, ${description}, ${authorId}, ${assigneeId}, ${category}, ${difficulty}, ${rewardType}, ${rewardAmount}, ${experienceReward}, ${dueDate})
+    RETURNING *
+  `;
+  return result[0] as Quest;
+}
+
+export async function getQuestsByUser(userId: string, status?: string): Promise<Quest[]> {
+  const result = status 
+    ? await sql`
+        SELECT * FROM quests 
+        WHERE (author_id = ${userId} OR assignee_id = ${userId}) AND status = ${status}
+        ORDER BY created_at DESC
+      `
+    : await sql`
+        SELECT * FROM quests 
+        WHERE (author_id = ${userId} OR assignee_id = ${userId})
+        ORDER BY created_at DESC
+      `;
+  return result as Quest[];
+}
+
+// Random Events
+export async function createRandomEvent(
+  userId: string,
+  title: string,
+  description: string,
+  rewardType: string = 'green',
+  rewardAmount: number = 1,
+  experienceReward: number = 15,
+  expiresAt: Date
+): Promise<RandomEvent> {
+  const result = await sql`
+    INSERT INTO random_events (user_id, title, description, reward_type, reward_amount, experience_reward, expires_at)
+    VALUES (${userId}, ${title}, ${description}, ${rewardType}, ${rewardAmount}, ${experienceReward}, ${expiresAt})
+    RETURNING *
+  `;
+  return result[0] as RandomEvent;
+}
+
+export async function getCurrentEvent(userId: string): Promise<RandomEvent | null> {
+  const result = await sql`
+    SELECT * FROM random_events 
+    WHERE user_id = ${userId} AND status = 'active'
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+  return result[0] as RandomEvent || null;
+}
+
+// Wish Categories
+export async function getWishCategories(): Promise<WishCategory[]> {
+  const result = await sql`SELECT * FROM wish_categories ORDER BY name`;
+  return result as WishCategory[];
+}
+
+export async function createWishCategory(name: string, emoji?: string, color?: string): Promise<WishCategory> {
+  const result = await sql`
+    INSERT INTO wish_categories (name, emoji, color)
+    VALUES (${name}, ${emoji}, ${color})
+    RETURNING *
+  `;
+  return result[0] as WishCategory;
+}
+
+// Ranks
+export async function getRanks(): Promise<Rank[]> {
+  const result = await sql`SELECT * FROM ranks ORDER BY min_experience`;
+  return result as Rank[];
+}
+
+export async function getUserRank(experiencePoints: number): Promise<Rank | null> {
+  const result = await sql`
+    SELECT * FROM ranks 
+    WHERE min_experience <= ${experiencePoints}
+    ORDER BY min_experience DESC
+    LIMIT 1
+  `;
+  return result[0] as Rank || null;
+}
+
+// Economy Settings
+export async function getEconomySetting(key: string): Promise<EconomySetting | null> {
+  const result = await sql`
+    SELECT * FROM economy_settings WHERE setting_key = ${key}
+  `;
+  return result[0] as EconomySetting || null;
+}
+
+export async function updateEconomySetting(key: string, value: any, description?: string): Promise<EconomySetting> {
+  const result = await sql`
+    INSERT INTO economy_settings (setting_key, setting_value, description)
+    VALUES (${key}, ${JSON.stringify(value)}, ${description})
+    ON CONFLICT (setting_key) 
+    DO UPDATE SET setting_value = ${JSON.stringify(value)}, description = ${description}, updated_at = NOW()
+    RETURNING *
+  `;
+  return result[0] as EconomySetting;
+}
+
+// Enhanced User Functions
+export async function updateUserExperience(userId: string, experienceGained: number): Promise<User> {
+  const result = await sql`
+    UPDATE users 
+    SET experience_points = experience_points + ${experienceGained}, updated_at = NOW()
+    WHERE id = ${userId}
+    RETURNING *
+  `;
+  return result[0] as User;
+}
+
+export async function updateUserQuotas(userId: string, dailyUsed?: number, weeklyUsed?: number, monthlyUsed?: number): Promise<User> {
+  // Простая реализация без динамических запросов
+  if (dailyUsed !== undefined) {
+    await sql`
+      UPDATE users 
+      SET daily_quota_used = daily_quota_used + ${dailyUsed}, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  }
+  if (weeklyUsed !== undefined) {
+    await sql`
+      UPDATE users 
+      SET weekly_quota_used = weekly_quota_used + ${weeklyUsed}, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  }
+  if (monthlyUsed !== undefined) {
+    await sql`
+      UPDATE users 
+      SET monthly_quota_used = monthly_quota_used + ${monthlyUsed}, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  }
+  
+  const result = await sql`
+    SELECT * FROM users WHERE id = ${userId}
+  `;
+  return result[0] as User;
+}
+
+export async function resetUserQuotas(userId: string, resetDaily: boolean = false, resetWeekly: boolean = false, resetMonthly: boolean = false): Promise<User> {
+  // Простая реализация с отдельными запросами
+  if (resetDaily) {
+    await sql`
+      UPDATE users 
+      SET daily_quota_used = 0, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  }
+  if (resetWeekly) {
+    await sql`
+      UPDATE users 
+      SET weekly_quota_used = 0, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  }
+  if (resetMonthly) {
+    await sql`
+      UPDATE users 
+      SET monthly_quota_used = 0, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  }
+  
+  const result = await sql`
+    UPDATE users 
+    SET last_quota_reset = CURRENT_DATE, updated_at = NOW()
+    WHERE id = ${userId}
+    RETURNING *
+  `;
+  return result[0] as User;
 }

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate": "node scripts/run-migrations.js",
+    "validate-migrations": "node scripts/validate-migrations.js",
+    "init-db": "node scripts/init-db.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
@@ -21,6 +24,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "dotenv": "^16.6.1",
     "eslint": "^8",
     "eslint-config-next": "14.0.0",
     "postcss": "^8",
