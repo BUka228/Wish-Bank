@@ -4,9 +4,9 @@ const nextConfig = {
     serverComponentsExternalPackages: ['node-telegram-bot-api']
   },
   env: {
-    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
-    POSTGRES_URL: process.env.POSTGRES_URL,
-    VERCEL_URL: process.env.VERCEL_URL
+    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
+    POSTGRES_URL: process.env.POSTGRES_URL || '',
+    VERCEL_URL: process.env.VERCEL_URL || ''
   }
 }
 

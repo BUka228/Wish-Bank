@@ -7,6 +7,8 @@ export default function DebugPage() {
 
   useEffect(() => {
     const collectDebugInfo = () => {
+      if (typeof window === 'undefined') return;
+      
       const info = {
         // Telegram WebApp
         telegramWebApp: !!window.Telegram?.WebApp,
@@ -31,6 +33,8 @@ export default function DebugPage() {
       
       setDebugInfo(info);
     };
+
+    if (typeof window === 'undefined') return;
 
     // Ждем загрузки Telegram WebApp
     let attempts = 0;
@@ -65,12 +69,14 @@ export default function DebugPage() {
             Обновить информацию
           </button>
           
-          {window.Telegram?.WebApp && (
+          {typeof window !== 'undefined' && window.Telegram?.WebApp && (
             <div className="space-y-2">
               <button
                 onClick={() => {
-                  const tg = window.Telegram.WebApp;
-                  alert(`Platform: ${tg.platform}\nVersion: ${tg.version}\nUser ID: ${tg.initDataUnsafe?.user?.id}`);
+                  if (window.Telegram?.WebApp) {
+                    const tg = window.Telegram.WebApp;
+                    alert(`Platform: ${tg.platform}\nVersion: ${tg.version}\nUser ID: ${tg.initDataUnsafe?.user?.id}`);
+                  }
                 }}
                 className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 block"
               >
@@ -78,7 +84,11 @@ export default function DebugPage() {
               </button>
               
               <button
-                onClick={() => window.Telegram.WebApp.close()}
+                onClick={() => {
+                  if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.close();
+                  }
+                }}
                 className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 block"
               >
                 Закрыть WebApp
