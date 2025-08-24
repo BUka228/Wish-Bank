@@ -185,14 +185,27 @@ export async function addTransaction(
   `;
 
   // Обновляем баланс пользователя
-  const balanceField = `${wishType}_balance`;
   const balanceChange = type === 'credit' ? amount : -amount;
   
-  await sql`
-    UPDATE users 
-    SET ${sql(balanceField)} = ${sql(balanceField)} + ${balanceChange}, updated_at = NOW()
-    WHERE id = ${userId}
-  `;
+  if (wishType === 'green') {
+    await sql`
+      UPDATE users 
+      SET green_balance = green_balance + ${balanceChange}, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  } else if (wishType === 'blue') {
+    await sql`
+      UPDATE users 
+      SET blue_balance = blue_balance + ${balanceChange}, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  } else if (wishType === 'red') {
+    await sql`
+      UPDATE users 
+      SET red_balance = red_balance + ${balanceChange}, updated_at = NOW()
+      WHERE id = ${userId}
+    `;
+  }
 
   return result.rows[0] as Transaction;
 }

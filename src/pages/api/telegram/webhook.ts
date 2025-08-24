@@ -33,6 +33,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const chatId = message.chat.id.toString();
     const text = message.text;
     
+    // Проверяем наличие текста
+    if (!text) {
+      return res.status(200).json({ ok: true });
+    }
+    
     // Парсим команду
     const parts = text.split(' ');
     const command = parts[0];
