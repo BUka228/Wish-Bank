@@ -117,39 +117,42 @@ curl -X POST "https://api.telegram.org/bot<TOKEN>/deleteWebhook"
 
 ### ❌ Vercel просит авторизацию при открытии Mini App
 
-**Причина:** Приложение не распознает, что оно запущено внутри Telegram WebApp.
+**Причина:** Приложение не может правильно определить, что оно запущено внутри Telegram WebApp.
 
-**Решение:**
+**Пошаговое решение:**
 
-1. **Проверьте заголовки в `vercel.json`:**
-   ```json
-   {
-     "headers": [
-       {
-         "source": "/(.*)",
-         "headers": [
-           {
-             "key": "X-Frame-Options",
-             "value": "ALLOWALL"
-           },
-           {
-             "key": "Content-Security-Policy",
-             "value": "frame-ancestors 'self' https://web.telegram.org"
-           }
-         ]
-       }
-     ]
-   }
+1. **Проверьте переменные окружения в Vercel:**
+   - Зайдите в Vercel Dashboard → Settings → Environment Variables
+   - Добавьте: `TELEGRAM_BOT_TOKEN` = ваш токен от BotFather
+   - Добавьте: `VERCEL_URL` = https://your-app.vercel.app
+   - Нажмите "Redeploy" после добавления переменных
+
+2. **Убедитесь, что Mini App URL правильно настроен:**
+   - Откройте [@BotFather](https://t.me/botfather)
+   - Выполните `/setmenubutton`
+   - Выберите вашего бота
+   - Введите URL: `https://your-app.vercel.app` (точно как в Vercel)
+
+3. **Проверьте, что приложение открывается ТОЛЬКО через Telegram:**
+   - НЕ открывайте ссылку в браузере напрямую
+   - Откройте Telegram → найдите бота → нажмите кнопку Menu
+   - Или отправьте `/start` и нажмите кнопку "🎯 Банк Желаний"
+
+4. **Для диагностики откройте:** `https://your-app.vercel.app/debug`
+   - Эта страница покажет техническую информацию
+   - Проверьте, что `telegramWebApp: true`
+
+5. **Если проблема остается:**
+   ```bash
+   # Проверьте webhook
+   curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
+   
+   # Удалите и установите заново
+   curl -X POST "https://api.telegram.org/bot<TOKEN>/deleteWebhook"
+   curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+        -H "Content-Type: application/json" \
+        -d '{"url": "https://your-app.vercel.app/api/telegram/webhook"}'
    ```
-
-2. **Убедитесь, что Telegram WebApp скрипт подключен:**
-   ```html
-   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-   ```
-
-3. **Проверьте переменную окружения `TELEGRAM_BOT_TOKEN` в Vercel**
-
-4. **Убедитесь, что URL Mini App правильно настроен в BotFather**
 
 ### ❌ Ошибка "Telegram user data not available"
 

@@ -34,9 +34,23 @@ export default function Home() {
   useEffect(() => {
     const initTelegramUser = async () => {
       try {
+        // Ждем загрузки Telegram WebApp скрипта
+        let attempts = 0;
+        while (!window.Telegram?.WebApp && attempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+
         // Проверяем, что мы внутри Telegram WebApp
         if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
           const tg = window.Telegram.WebApp;
+          
+          console.log('Telegram WebApp detected:', {
+            platform: tg.platform,
+            version: tg.version,
+            initData: !!tg.initData,
+            user: !!tg.initDataUnsafe?.user
+          });
           
           // Инициализируем WebApp
           tg.ready();
@@ -45,7 +59,7 @@ export default function Home() {
           const user = tg.initDataUnsafe?.user;
           
           if (!user) {
-            throw new Error('Telegram user data not available');
+            throw new Error('Telegram user data not available. Убедитесь, что приложение открыто через Telegram бота.');
           }
 
           const response = await fetch('/api/users/init', {
@@ -60,7 +74,10 @@ export default function Home() {
             })
           });
 
-          if (!response.ok) throw new Error('Failed to initialize user');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to initialize user');
+          }
           
           const userData = await response.json();
           setCurrentUser(userData.user);
@@ -82,7 +99,10 @@ export default function Home() {
             body: JSON.stringify(mockTelegramUser)
           });
 
-          if (!response.ok) throw new Error('Failed to initialize user');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to initialize user');
+          }
           
           const userData = await response.json();
           setCurrentUser(userData.user);
@@ -90,6 +110,7 @@ export default function Home() {
           await loadData();
         }
       } catch (err) {
+        console.error('Initialization error:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
@@ -216,15 +237,46 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">Ошибка: {error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-          >
-            Перезагрузить
-          </button>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Ошибка инициализации</h2>
+          <p className="text-red-600 mb-4 text-sm">{error}</p>
+          
+          {error.includes('Telegram user data not available') && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
+              <h3 className="font-semibold text-blue-800 mb-2">💡 Как исправить:</h3>
+              <ol className="text-sm text-blue-700 space-y-1">
+                <li>1. Откройте Telegram</li>
+                <li>2. Найдите вашего бота</li>
+                <li>3. Нажмите кнопку "🎯 Банк Желаний"</li>
+                <li>4. НЕ открывайте ссылку в браузере</li>
+              </ol>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full"
+            >
+              Перезагрузить
+            </button>
+            
+            {typeof window !== 'undefined' && window.Telegram?.WebApp && (
+              <button
+                onClick={() => window.Telegram.WebApp.close()}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 w-full"
+              >
+                Закрыть приложение
+              </button>
+            )}
+          </div>
+          
+          <div className="mt-4 text-xs text-gray-500">
+            <p>Telegram WebApp: {typeof window !== 'undefined' && window.Telegram?.WebApp ? '✅' : '❌'}</p>
+            <p>Platform: {typeof window !== 'undefined' && window.Telegram?.WebApp?.platform || 'unknown'}</p>
+          </div>
         </div>
       </div>
     );
