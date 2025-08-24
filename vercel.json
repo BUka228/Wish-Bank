@@ -5,8 +5,8 @@
     }
   },
   "env": {
-    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token",
-    "POSTGRES_URL": "@postgres_url",
-    "VERCEL_URL": "@vercel_url"
+    "TELEGRAM_BOT_TOKEN": "$TELEGRAM_BOT_TOKEN",
+    "POSTGRES_URL": "$POSTGRES_URL", 
+    "VERCEL_URL": "$VERCEL_URL"
   }
 }
