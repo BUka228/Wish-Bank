@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "src/pages/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token",
+    "POSTGRES_URL": "@postgres_url",
+    "VERCEL_URL": "@vercel_url"
+  }
+}
