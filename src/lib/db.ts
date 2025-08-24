@@ -1331,3 +1331,110 @@ export async function checkAndResetQuotas(userId: string): Promise<User> {
 
   return user[0] as User;
 }
+
+// Additional functions needed for API endpoints
+
+export async function updateUser(userId: string, updates: Partial<User>): Promise<User> {
+  const setClause = Object.entries(updates)
+    .filter(([_, value]) => value !== undefined)
+    .map(([key, _]) => `${key} = $${key}`)
+    .join(', ');
+  
+  if (!setClause) {
+    throw new Error('No valid updates provided');
+  }
+
+  // Simple approach: update each field individually if provided
+  let result;
+  if (updates.experience_points !== undefined) {
+    result = await sql`UPDATE users SET experience_points = ${updates.experience_points} WHERE id = ${userId} RETURNING *`;
+  }
+  if (updates.rank !== undefined) {
+    result = await sql`UPDATE users SET rank = ${updates.rank} WHERE id = ${userId} RETURNING *`;
+  }
+  if (updates.green_balance !== undefined) {
+    result = await sql`UPDATE users SET green_balance = ${updates.green_balance} WHERE id = ${userId} RETURNING *`;
+  }
+  if (updates.blue_balance !== undefined) {
+    result = await sql`UPDATE users SET blue_balance = ${updates.blue_balance} WHERE id = ${userId} RETURNING *`;
+  }
+  if (updates.red_balance !== undefined) {
+    result = await sql`UPDATE users SET red_balance = ${updates.red_balance} WHERE id = ${userId} RETURNING *`;
+  }
+
+  // If no specific updates, just return the current user
+  if (!result) {
+    result = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  }
+
+  return result[0] as User;
+}
+
+export async function getWishesByCreator(creatorId: string, filters: any = {}, page: number = 1, limit: number = 10): Promise<Wish[]> {
+  const offset = (page - 1) * limit;
+  
+  let whereClause = `WHERE author_id = ${creatorId}`;
+  if (filters.status) {
+    whereClause += ` AND status = '${filters.status}'`;
+  }
+  if (filters.category) {
+    whereClause += ` AND category = '${filters.category}'`;
+  }
+
+  const result = await sql`
+    SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+    FROM wishes w 
+    LEFT JOIN users u1 ON w.author_id = u1.id 
+    LEFT JOIN users u2 ON w.assignee_id = u2.id 
+    WHERE w.author_id = ${creatorId}
+    ORDER BY w.created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  
+  return result as Wish[];
+}
+
+export async function getWishesByAssignee(assigneeId: string, filters: any = {}, page: number = 1, limit: number = 10): Promise<Wish[]> {
+  const offset = (page - 1) * limit;
+  
+  const result = await sql`
+    SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+    FROM wishes w 
+    LEFT JOIN users u1 ON w.author_id = u1.id 
+    LEFT JOIN users u2 ON w.assignee_id = u2.id 
+    WHERE w.assignee_id = ${assigneeId}
+    ORDER BY w.created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  
+  return result as Wish[];
+}
+
+export async function getSharedWishes(filters: any = {}, page: number = 1, limit: number = 10): Promise<Wish[]> {
+  const offset = (page - 1) * limit;
+  
+  let whereClause = 'WHERE is_shared = true';
+  if (filters.status) {
+    whereClause += ` AND status = '${filters.status}'`;
+  }
+  if (filters.category) {
+    whereClause += ` AND category = '${filters.category}'`;
+  }
+
+  const result = await sql`
+    SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+    FROM wishes w 
+    LEFT JOIN users u1 ON w.author_id = u1.id 
+    LEFT JOIN users u2 ON w.assignee_id = u2.id 
+    WHERE w.is_shared = true
+    ORDER BY w.created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
+  
+  return result as Wish[];
+}
+
+
+
+
+

@@ -237,16 +237,7 @@ export interface EconomyMetrics {
   gift_frequency: number;
 }
 
-// Notification interfaces
-export interface NotificationData {
-  type: 'quest_assigned' | 'quest_completed' | 'event_available' | 'event_completed' | 'wish_gifted' | 'rank_promoted' | 'shared_wish_request';
-  title: string;
-  message: string;
-  recipient_id: string;
-  sender_id?: string;
-  reference_id?: string;
-  metadata?: Record<string, any>;
-}
+
 
 // Validation interfaces
 export interface ValidationResult {
@@ -266,4 +257,23 @@ export interface QuotaValidation extends ValidationResult {
   quotaType: 'daily' | 'weekly' | 'monthly';
   remainingQuota: number;
   resetTime: Date;
+}
+
+// Notification system interfaces
+export interface NotificationData {
+  type: 'quest_assigned' | 'quest_completed' | 'quest_expired' | 'event_available' | 'event_completed' | 'event_expired' | 'wish_gifted' | 'rank_promoted' | 'shared_wish_request';
+  title: string;
+  message: string;
+  recipient_id?: string;
+  data?: Record<string, any>;
+  created_at?: Date;
+}
+
+export interface NotificationPreferences {
+  quest_notifications: boolean;
+  event_notifications: boolean;
+  wish_notifications: boolean;
+  rank_notifications: boolean;
+  email_notifications: boolean;
+  push_notifications: boolean;
 }
