@@ -24,9 +24,24 @@ interface WishCardProps {
 }
 
 const wishTypeConfig = {
-  green: { emoji: '💚', color: 'bg-green-100 border-green-300', textColor: 'text-green-800' },
-  blue: { emoji: '💙', color: 'bg-blue-100 border-blue-300', textColor: 'text-blue-800' },
-  red: { emoji: '❤️', color: 'bg-red-100 border-red-300', textColor: 'text-red-800' }
+  green: { 
+    emoji: '💚', 
+    color: 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200', 
+    textColor: 'text-green-800',
+    badgeColor: 'bg-green-500 text-white'
+  },
+  blue: { 
+    emoji: '💙', 
+    color: 'bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200', 
+    textColor: 'text-blue-800',
+    badgeColor: 'bg-blue-500 text-white'
+  },
+  red: { 
+    emoji: '❤️', 
+    color: 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200', 
+    textColor: 'text-red-800',
+    badgeColor: 'bg-red-500 text-white'
+  }
 };
 
 export default function WishCard({ wish, onComplete, onCancel, currentUserId }: WishCardProps) {
@@ -37,39 +52,43 @@ export default function WishCard({ wish, onComplete, onCancel, currentUserId }: 
   const canCancel = isAuthor && wish.status === 'active';
 
   return (
-    <div className={`p-4 rounded-lg border-2 ${config.color} transition-all hover:shadow-md`}>
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{config.emoji}</span>
-          <span className={`text-sm font-medium px-2 py-1 rounded ${config.textColor} bg-white/50`}>
+    <div className={`p-5 rounded-2xl border-2 ${config.color} transition-all duration-200 hover:shadow-lg hover:scale-[1.02] backdrop-blur-sm`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-white rounded-xl shadow-md flex items-center justify-center border border-gray-100">
+            <span className="text-2xl">{config.emoji}</span>
+          </div>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${config.badgeColor} shadow-sm`}>
             {wish.type.toUpperCase()}
           </span>
         </div>
-        <span className="text-xs text-gray-500">
+        <div className="text-xs text-gray-500 bg-white/70 px-2 py-1 rounded-full">
           {formatTimeAgo(new Date(wish.created_at))}
-        </span>
+        </div>
       </div>
 
-      <p className="text-gray-800 mb-3 font-medium">{wish.description}</p>
+      <p className="text-gray-800 mb-4 font-medium text-base leading-relaxed bg-white/50 p-3 rounded-lg border border-white/70">
+        {wish.description}
+      </p>
 
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <div>
-          <span className="font-medium">От:</span> {wish.author_name}
+      <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+        <div className="bg-white/70 px-3 py-2 rounded-lg border border-white/50">
+          <span className="font-semibold text-gray-700">От:</span> <span className="font-medium">{wish.author_name}</span>
           {wish.assignee_name && (
             <>
-              <span className="mx-2">→</span>
-              <span className="font-medium">Для:</span> {wish.assignee_name}
+              <span className="mx-2 text-gray-400">→</span>
+              <span className="font-semibold text-gray-700">Для:</span> <span className="font-medium">{wish.assignee_name}</span>
             </>
           )}
         </div>
       </div>
 
       {(canComplete || canCancel) && (
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-3 mt-4">
           {canComplete && (
             <button
               onClick={() => onComplete?.(wish.id)}
-              className="flex-1 bg-green-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-600 transition-colors"
+              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-3 rounded-xl text-sm font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               ✅ Выполнено
             </button>
@@ -77,7 +96,7 @@ export default function WishCard({ wish, onComplete, onCancel, currentUserId }: 
           {canCancel && (
             <button
               onClick={() => onCancel?.(wish.id)}
-              className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors"
+              className="px-4 py-3 bg-white/80 text-gray-700 rounded-xl text-sm font-medium hover:bg-white border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               ❌ Отменить
             </button>

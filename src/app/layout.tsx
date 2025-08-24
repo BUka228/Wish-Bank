@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className="bg-gray-50 min-h-screen">
+      <body className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 min-h-screen antialiased">
         <Script 
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"

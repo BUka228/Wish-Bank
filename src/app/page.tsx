@@ -5,6 +5,7 @@ import { User, Wish } from '@/lib/db';
 import BalanceCard from '@/components/BalanceCard';
 import QuickActions from '@/components/QuickActions';
 import WishCard from '@/components/WishCard';
+import BurgerMenu from '@/components/BurgerMenu';
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
@@ -226,10 +227,15 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto mb-4"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-2xl">🎯</span>
+            </div>
+          </div>
+          <p className="text-gray-600 font-medium">Загружаем Банк Желаний...</p>
         </div>
       </div>
     );
@@ -237,14 +243,14 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">⚠️</div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">Ошибка инициализации</h2>
-          <p className="text-red-600 mb-4 text-sm">{error}</p>
+          <p className="text-red-600 mb-4 text-sm bg-red-50 p-3 rounded-lg border border-red-200">{error}</p>
           
           {error.includes('Telegram user data not available') && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4 text-left">
               <h3 className="font-semibold text-blue-800 mb-2">💡 Как исправить:</h3>
               <ol className="text-sm text-blue-700 space-y-1">
                 <li>1. Откройте Telegram</li>
@@ -255,12 +261,12 @@ export default function Home() {
             </div>
           )}
           
-          <div className="space-y-2">
+          <div className="space-y-3">
             <button
               onClick={() => window.location.reload()}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full"
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-purple-600 w-full font-medium shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              Перезагрузить
+              🔄 Перезагрузить
             </button>
             
             {typeof window !== 'undefined' && window.Telegram?.WebApp && (
@@ -270,16 +276,18 @@ export default function Home() {
                     window.Telegram.WebApp.close();
                   }
                 }}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 w-full"
+                className="bg-gray-500 text-white px-6 py-3 rounded-xl hover:bg-gray-600 w-full font-medium shadow-lg hover:shadow-xl transition-all duration-200"
               >
-                Закрыть приложение
+                ❌ Закрыть приложение
               </button>
             )}
           </div>
           
-          <div className="mt-4 text-xs text-gray-500">
-            <p>Telegram WebApp: {typeof window !== 'undefined' && window.Telegram?.WebApp ? '✅' : '❌'}</p>
-            <p>Platform: {typeof window !== 'undefined' && window.Telegram?.WebApp?.platform || 'unknown'}</p>
+          <div className="mt-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>Telegram WebApp: {typeof window !== 'undefined' && window.Telegram?.WebApp ? '✅' : '❌'}</p>
+              <p>Platform: {typeof window !== 'undefined' && window.Telegram?.WebApp?.platform || 'unknown'}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -288,18 +296,30 @@ export default function Home() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Пользователь не найден</p>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">👤</div>
+          <p className="text-gray-600 font-medium">Пользователь не найден</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto p-4 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+      <BurgerMenu currentUser={currentUser} />
+      
+      <div className="max-w-md mx-auto p-4 space-y-6 pt-6">
         {/* Заголовок */}
-        <div className="text-center py-4">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">🎯 Банк Желаний</h1>
+        <div className="text-center py-6">
+          <div className="mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full shadow-lg mb-4">
+              <span className="text-4xl">🎯</span>
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            Банк Желаний
+          </h1>
           <p className="text-gray-600 text-sm">Управляйте желаниями вместе</p>
         </div>
 
@@ -316,12 +336,29 @@ export default function Home() {
 
         {/* Активные желания */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">Активные желания</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-800">Активные желания</h2>
+            <div className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center">
+              <span className="text-sm font-bold text-gray-600">{wishes.length}</span>
+            </div>
+          </div>
+          
           {wishes.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p className="text-4xl mb-2">🌟</p>
-              <p>Пока нет активных желаний</p>
-              <p className="text-sm">Создайте первое желание!</p>
+            <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-100">
+              <div className="mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-200 to-orange-200 rounded-full mb-4">
+                  <span className="text-3xl">🌟</span>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Пока нет активных желаний</h3>
+              <p className="text-gray-500 text-sm mb-4">Создайте первое желание и начните волшебство!</p>
+              <div className="flex justify-center gap-2 text-xs text-gray-400">
+                <span>💚 Простые</span>
+                <span>•</span>
+                <span>💙 Сложные</span>
+                <span>•</span>
+                <span>❤️ Особенные</span>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -336,6 +373,9 @@ export default function Home() {
             </div>
           )}
         </div>
+
+        {/* Footer spacing */}
+        <div className="pb-6"></div>
       </div>
     </div>
   );
