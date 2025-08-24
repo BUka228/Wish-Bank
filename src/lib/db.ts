@@ -124,10 +124,19 @@ export async function getUserByTelegramId(telegramId: string): Promise<User | nu
     throw new Error('DATABASE_URL or POSTGRES_URL environment variable is not set');
   }
   
-  const result = await sql`
-    SELECT * FROM users WHERE telegram_id = ${telegramId}
-  `;
-  return result[0] as User || null;
+  try {
+    const result = await sql`
+      SELECT * FROM users WHERE telegram_id = ${telegramId}
+    `;
+    return result[0] as User || null;
+  } catch (error: any) {
+    // Если таблица не существует, пробрасываем ошибку для обработки выше
+    if (error.code === '42P01') {
+      throw error;
+    }
+    console.error('Error getting user by telegram ID:', error);
+    throw error;
+  }
 }
 
 export async function getAllUsers(): Promise<User[]> {

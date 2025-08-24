@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createUser, getUserByTelegramId } from '@/lib/db';
+import { createUser, getUserByTelegramId, initDatabase } from '@/lib/db';
 import { validateTelegramWebAppData, createMockTelegramUser, TelegramUser } from '@/lib/telegram-auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -35,7 +35,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Проверяем, существует ли пользователь
-    let user = await getUserByTelegramId(telegramUser.id);
+    let user;
+    try {
+      user = await getUserByTelegramId(telegramUser.id);
+    } catch (error: any) {
+      // Если таблица не существует, инициализируем базу данных
+      if (error.code === '42P01') {
+        console.log('Database tables not found, initializing...');
+        await initDatabase();
+        user = null; // После инициализации пользователя точно нет
+      } else {
+        throw error;
+      }
+    }
     
     if (!user) {
       // Создаем нового пользователя
