@@ -1,12 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createUser, getUserByTelegramId } from '@/lib/db';
-
-interface TelegramUser {
-  id: string;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-}
+import { validateTelegramWebAppData, createMockTelegramUser, TelegramUser } from '@/lib/telegram-auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -14,7 +8,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const telegramUser: TelegramUser = req.body;
+    let telegramUser: TelegramUser;
+    
+    // Проверяем, есть ли initData для валидации
+    const { initData, ...fallbackUser } = req.body;
+    
+    if (initData && process.env.TELEGRAM_BOT_TOKEN) {
+      // Валидируем данные от Telegram WebApp
+      const validatedUser = validateTelegramWebAppData(initData, process.env.TELEGRAM_BOT_TOKEN);
+      
+      if (!validatedUser) {
+        return res.status(401).json({ error: 'Invalid Telegram data' });
+      }
+      
+      telegramUser = validatedUser;
+    } else if (process.env.NODE_ENV === 'development' && fallbackUser.id) {
+      // В режиме разработки разрешаем использовать переданные данные
+      telegramUser = fallbackUser as TelegramUser;
+    } else {
+      // Используем моковые данные для тестирования
+      telegramUser = createMockTelegramUser();
+    }
     
     if (!telegramUser.id || !telegramUser.first_name) {
       return res.status(400).json({ error: 'Invalid user data' });

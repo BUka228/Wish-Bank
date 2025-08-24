@@ -6,6 +6,38 @@
   html {
     font-family: system-ui, sans-serif;
   }
+  
+  /* Telegram WebApp стили */
+  body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+  
+  /* Темная тема для Telegram */
+  .dark {
+    @apply bg-gray-900 text-white;
+  }
+  
+  .dark .bg-gray-50 {
+    @apply bg-gray-900;
+  }
+  
+  .dark .bg-white {
+    @apply bg-gray-800;
+  }
+  
+  .dark .text-gray-800 {
+    @apply text-gray-100;
+  }
+  
+  .dark .text-gray-600 {
+    @apply text-gray-300;
+  }
+  
+  .dark .text-gray-500 {
+    @apply text-gray-400;
+  }
 }
 
 @layer components {

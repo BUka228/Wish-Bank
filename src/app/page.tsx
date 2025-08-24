@@ -14,30 +14,81 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   // Инициализация пользователя из Telegram WebApp
+  // Настройка Telegram WebApp UI
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      
+      // Настраиваем UI
+      tg.expand();
+      tg.BackButton.hide();
+      tg.MainButton.hide();
+      
+      // Применяем тему Telegram
+      if (tg.colorScheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const initTelegramUser = async () => {
       try {
-        // В реальном приложении здесь будет Telegram WebApp API
-        // Для демо используем моковые данные
-        const mockTelegramUser = {
-          id: '123456789',
-          first_name: 'Тестовый',
-          last_name: 'Пользователь',
-          username: 'testuser'
-        };
+        // Проверяем, что мы внутри Telegram WebApp
+        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+          const tg = window.Telegram.WebApp;
+          
+          // Инициализируем WebApp
+          tg.ready();
+          
+          // Получаем данные пользователя
+          const user = tg.initDataUnsafe?.user;
+          
+          if (!user) {
+            throw new Error('Telegram user data not available');
+          }
 
-        const response = await fetch('/api/users/init', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mockTelegramUser)
-        });
+          const response = await fetch('/api/users/init', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              initData: tg.initData, // Передаем initData для валидации
+              id: user.id.toString(),
+              first_name: user.first_name,
+              last_name: user.last_name,
+              username: user.username
+            })
+          });
 
-        if (!response.ok) throw new Error('Failed to initialize user');
-        
-        const userData = await response.json();
-        setCurrentUser(userData.user);
-        
-        await loadData();
+          if (!response.ok) throw new Error('Failed to initialize user');
+          
+          const userData = await response.json();
+          setCurrentUser(userData.user);
+          
+          await loadData();
+        } else {
+          // Fallback для разработки
+          console.warn('Not running in Telegram WebApp, using mock data');
+          const mockTelegramUser = {
+            id: '123456789',
+            first_name: 'Тестовый',
+            last_name: 'Пользователь',
+            username: 'testuser'
+          };
+
+          const response = await fetch('/api/users/init', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mockTelegramUser)
+          });
+
+          if (!response.ok) throw new Error('Failed to initialize user');
+          
+          const userData = await response.json();
+          setCurrentUser(userData.user);
+          
+          await loadData();
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
