@@ -1,4 +1,12 @@
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
+
+// Проверяем наличие переменной окружения при импорте модуля
+if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+  console.warn('Warning: DATABASE_URL or POSTGRES_URL environment variable is not set. Database operations will fail.');
+}
+
+// Создаем подключение к базе данных
+const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '');
 
 export interface User {
   id: string;
@@ -108,21 +116,23 @@ export async function createUser(telegramId: string, name: string, username?: st
     DO UPDATE SET name = ${name}, username = ${username}, updated_at = NOW()
     RETURNING *
   `;
-  return result.rows[0] as User;
+  return result[0] as User;
 }
 
 export async function getUserByTelegramId(telegramId: string): Promise<User | null> {
+  if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+    throw new Error('DATABASE_URL or POSTGRES_URL environment variable is not set');
+  }
+  
   const result = await sql`
     SELECT * FROM users WHERE telegram_id = ${telegramId}
   `;
-  return result.rows[0] as User || null;
+  return result[0] as User || null;
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  const result = await sql`
-    SELECT * FROM users ORDER BY created_at ASC
-  `;
-  return result.rows as User[];
+  const result = await sql`SELECT * FROM users ORDER BY created_at ASC`;
+  return result as User[];
 }
 
 // Желания
@@ -133,30 +143,33 @@ export async function createWish(
   assigneeId?: string
 ): Promise<Wish> {
   const result = await sql`
-    INSERT INTO wishes (type, description, author_id, assignee_id)
-    VALUES (${type}, ${description}, ${authorId}, ${assigneeId})
+    INSERT INTO wishes (type, description, author_id, assignee_id) 
+    VALUES (${type}, ${description}, ${authorId}, ${assigneeId}) 
     RETURNING *
   `;
-  return result.rows[0] as Wish;
+  return result[0] as Wish;
 }
 
 export async function getActiveWishes(userId?: string): Promise<Wish[]> {
-  const query = userId 
-    ? sql`SELECT w.*, u1.name as author_name, u2.name as assignee_name 
-          FROM wishes w 
-          LEFT JOIN users u1 ON w.author_id = u1.id 
-          LEFT JOIN users u2 ON w.assignee_id = u2.id 
-          WHERE w.status = 'active' AND (w.author_id = ${userId} OR w.assignee_id = ${userId})
-          ORDER BY w.created_at DESC`
-    : sql`SELECT w.*, u1.name as author_name, u2.name as assignee_name 
-          FROM wishes w 
-          LEFT JOIN users u1 ON w.author_id = u1.id 
-          LEFT JOIN users u2 ON w.assignee_id = u2.id 
-          WHERE w.status = 'active' 
-          ORDER BY w.created_at DESC`;
+  const result = userId 
+    ? await sql`
+        SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+        FROM wishes w 
+        LEFT JOIN users u1 ON w.author_id = u1.id 
+        LEFT JOIN users u2 ON w.assignee_id = u2.id 
+        WHERE w.status = 'active' AND (w.author_id = ${userId} OR w.assignee_id = ${userId})
+        ORDER BY w.created_at DESC
+      `
+    : await sql`
+        SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+        FROM wishes w 
+        LEFT JOIN users u1 ON w.author_id = u1.id 
+        LEFT JOIN users u2 ON w.assignee_id = u2.id 
+        WHERE w.status = 'active' 
+        ORDER BY w.created_at DESC
+      `;
   
-  const result = await query;
-  return result.rows as Wish[];
+  return result as Wish[];
 }
 
 export async function completeWish(wishId: string): Promise<Wish> {
@@ -166,7 +179,7 @@ export async function completeWish(wishId: string): Promise<Wish> {
     WHERE id = ${wishId} 
     RETURNING *
   `;
-  return result.rows[0] as Wish;
+  return result[0] as Wish;
 }
 
 // Транзакции и баланс
@@ -179,8 +192,8 @@ export async function addTransaction(
   referenceId?: string
 ): Promise<Transaction> {
   const result = await sql`
-    INSERT INTO transactions (user_id, type, wish_type, amount, reason, reference_id)
-    VALUES (${userId}, ${type}, ${wishType}, ${amount}, ${reason}, ${referenceId})
+    INSERT INTO transactions (user_id, type, wish_type, amount, reason, reference_id) 
+    VALUES (${userId}, ${type}, ${wishType}, ${amount}, ${reason}, ${referenceId}) 
     RETURNING *
   `;
 
@@ -190,24 +203,24 @@ export async function addTransaction(
   if (wishType === 'green') {
     await sql`
       UPDATE users 
-      SET green_balance = green_balance + ${balanceChange}, updated_at = NOW()
+      SET green_balance = green_balance + ${balanceChange}, updated_at = NOW() 
       WHERE id = ${userId}
     `;
   } else if (wishType === 'blue') {
     await sql`
       UPDATE users 
-      SET blue_balance = blue_balance + ${balanceChange}, updated_at = NOW()
+      SET blue_balance = blue_balance + ${balanceChange}, updated_at = NOW() 
       WHERE id = ${userId}
     `;
   } else if (wishType === 'red') {
     await sql`
       UPDATE users 
-      SET red_balance = red_balance + ${balanceChange}, updated_at = NOW()
+      SET red_balance = red_balance + ${balanceChange}, updated_at = NOW() 
       WHERE id = ${userId}
     `;
   }
 
-  return result.rows[0] as Transaction;
+  return result[0] as Transaction;
 }
 
 export async function exchangeWishes(
@@ -223,7 +236,7 @@ export async function exchangeWishes(
     
     // Проверяем баланс
     const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
-    const currentBalance = user.rows[0][`${fromType}_balance`];
+    const currentBalance = user[0][`${fromType}_balance`];
     
     if (currentBalance < exchangeRate) {
       await sql`ROLLBACK`;
@@ -251,5 +264,5 @@ export async function getUserTransactions(userId: string, limit = 50): Promise<T
     ORDER BY created_at DESC 
     LIMIT ${limit}
   `;
-  return result.rows as Transaction[];
+  return result as Transaction[];
 }
