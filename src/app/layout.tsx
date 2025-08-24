@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -13,13 +14,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ru">
-      <body className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 min-h-screen antialiased">
+    <html lang="ru" suppressHydrationWarning>
+      <body className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 min-h-screen antialiased transition-colors duration-300">
         <Script 
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

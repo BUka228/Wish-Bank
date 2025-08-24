@@ -227,15 +227,15 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-500 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 dark:border-purple-700 border-t-purple-500 dark:border-t-purple-400 mx-auto mb-4"></div>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-2xl">🎯</span>
             </div>
           </div>
-          <p className="text-gray-600 font-medium">Загружаем Банк Желаний...</p>
+          <p className="text-gray-600 dark:text-gray-300 font-medium">Загружаем Банк Желаний...</p>
         </div>
       </div>
     );
@@ -243,16 +243,16 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-orange-50 dark:from-red-900/20 dark:via-pink-900/20 dark:to-orange-900/20 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Ошибка инициализации</h2>
-          <p className="text-red-600 mb-4 text-sm bg-red-50 p-3 rounded-lg border border-red-200">{error}</p>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Ошибка инициализации</h2>
+          <p className="text-red-600 dark:text-red-400 mb-4 text-sm bg-red-50 dark:bg-red-900/30 p-3 rounded-lg border border-red-200 dark:border-red-700">{error}</p>
           
           {error.includes('Telegram user data not available') && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4 text-left">
-              <h3 className="font-semibold text-blue-800 mb-2">💡 Как исправить:</h3>
-              <ol className="text-sm text-blue-700 space-y-1">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-4 mb-4 text-left">
+              <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">💡 Как исправить:</h3>
+              <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
                 <li>1. Откройте Telegram</li>
                 <li>2. Найдите вашего бота</li>
                 <li>3. Нажмите кнопку "🎯 Банк Желаний"</li>
@@ -276,15 +276,15 @@ export default function Home() {
                     window.Telegram.WebApp.close();
                   }
                 }}
-                className="bg-gray-500 text-white px-6 py-3 rounded-xl hover:bg-gray-600 w-full font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                className="bg-gray-500 dark:bg-gray-600 text-white px-6 py-3 rounded-xl hover:bg-gray-600 dark:hover:bg-gray-700 w-full font-medium shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 ❌ Закрыть приложение
               </button>
             )}
           </div>
           
-          <div className="mt-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <div className="text-xs text-gray-500 space-y-1">
+          <div className="mt-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
               <p>Telegram WebApp: {typeof window !== 'undefined' && window.Telegram?.WebApp ? '✅' : '❌'}</p>
               <p>Platform: {typeof window !== 'undefined' && window.Telegram?.WebApp?.platform || 'unknown'}</p>
             </div>
@@ -296,17 +296,17 @@ export default function Home() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">👤</div>
-          <p className="text-gray-600 font-medium">Пользователь не найден</p>
+          <p className="text-gray-600 dark:text-gray-300 font-medium">Пользователь не найден</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
       <BurgerMenu currentUser={currentUser} />
       
       <div className="max-w-md mx-auto p-4 space-y-6 pt-6">
@@ -317,10 +317,10 @@ export default function Home() {
               <span className="text-4xl">🎯</span>
             </div>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-2">
             Банк Желаний
           </h1>
-          <p className="text-gray-600 text-sm">Управляйте желаниями вместе</p>
+          <p className="text-gray-600 dark:text-gray-300 text-sm">Управляйте желаниями вместе</p>
         </div>
 
         {/* Баланс */}
@@ -337,22 +337,22 @@ export default function Home() {
         {/* Активные желания */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-800">Активные желания</h2>
-            <div className="w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center">
-              <span className="text-sm font-bold text-gray-600">{wishes.length}</span>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Активные желания</h2>
+            <div className="w-8 h-8 bg-white dark:bg-gray-700 rounded-full shadow-md flex items-center justify-center border border-gray-200 dark:border-gray-600">
+              <span className="text-sm font-bold text-gray-600 dark:text-gray-300">{wishes.length}</span>
             </div>
           </div>
           
           {wishes.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl shadow-lg border border-gray-100">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
               <div className="mb-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-200 to-orange-200 rounded-full mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-yellow-200 to-orange-200 dark:from-yellow-600 dark:to-orange-600 rounded-full mb-4">
                   <span className="text-3xl">🌟</span>
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Пока нет активных желаний</h3>
-              <p className="text-gray-500 text-sm mb-4">Создайте первое желание и начните волшебство!</p>
-              <div className="flex justify-center gap-2 text-xs text-gray-400">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Пока нет активных желаний</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Создайте первое желание и начните волшебство!</p>
+              <div className="flex justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
                 <span>💚 Простые</span>
                 <span>•</span>
                 <span>💙 Сложные</span>

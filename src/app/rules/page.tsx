@@ -55,7 +55,7 @@ export default function RulesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
       <BurgerMenu />
       
       <div className="max-w-4xl mx-auto p-4 pt-20">
@@ -63,16 +63,16 @@ export default function RulesPage() {
         <div className="text-center mb-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors mb-4"
           >
             <span className="text-xl">←</span>
             <span>Назад к приложению</span>
           </Link>
           
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-4">
             📋 Правила Банка Желаний
           </h1>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
             Система уровней желаний помогает справедливо распределять усилия и делает процесс исполнения желаний более интересным
           </p>
         </div>
@@ -82,19 +82,19 @@ export default function RulesPage() {
           {rules.map((rule) => (
             <div
               key={rule.type}
-              className={`bg-gradient-to-r ${rule.bgColor} rounded-2xl border-2 ${rule.borderColor} p-6 shadow-lg hover:shadow-xl transition-all duration-300`}
+              className={`bg-gradient-to-r ${rule.bgColor} dark:from-gray-800 dark:to-gray-700 rounded-2xl border-2 ${rule.borderColor} dark:border-gray-600 p-6 shadow-lg hover:shadow-xl transition-all duration-300`}
             >
               <div className="flex items-start gap-4 mb-4">
                 <div className="text-5xl">{rule.emoji}</div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-1">
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">
                     {rule.title}
                   </h2>
                   <div className="flex flex-wrap items-center gap-3 mb-3">
                     <span className={`px-3 py-1 ${rule.accentColor} text-white rounded-full text-sm font-medium`}>
                       {rule.subtitle}
                     </span>
-                    <span className="px-3 py-1 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700">
+                    <span className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300">
                       Стоимость: {rule.cost}
                     </span>
                   </div>
@@ -102,22 +102,22 @@ export default function RulesPage() {
               </div>
 
               <div className="mb-6">
-                <h3 className="font-semibold text-gray-800 mb-2">Условия:</h3>
-                <p className="text-gray-700 leading-relaxed">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Условия:</h3>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                   {rule.description}
                 </p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-gray-800 mb-3">Примеры:</h3>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">Примеры:</h3>
                 <div className="grid gap-2">
                   {rule.examples.map((example, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-3 p-3 bg-white/70 rounded-lg border border-white/50"
+                      className="flex items-center gap-3 p-3 bg-white/70 dark:bg-gray-700/70 rounded-lg border border-white/50 dark:border-gray-600/50"
                     >
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-700 font-medium">«{example}»</span>
+                      <span className="text-gray-400 dark:text-gray-500">•</span>
+                      <span className="text-gray-700 dark:text-gray-200 font-medium">«{example}»</span>
                     </div>
                   ))}
                 </div>
@@ -127,29 +127,29 @@ export default function RulesPage() {
         </div>
 
         {/* Exchange Info */}
-        <div className="mt-12 bg-white rounded-2xl border-2 border-gray-200 p-6 shadow-lg">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
+        <div className="mt-12 bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-600 p-6 shadow-lg">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 text-center">
             💱 Система обмена
           </h2>
           
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="text-center p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-blue-200">
+            <div className="text-center p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/30 dark:to-blue-900/30 rounded-xl border border-blue-200 dark:border-blue-700">
               <div className="text-3xl mb-2">💚 → 💙</div>
-              <div className="font-bold text-lg text-gray-800">10 зелёных = 1 синее</div>
-              <div className="text-sm text-gray-600 mt-1">Накопите зелёные для более серьёзных желаний</div>
+              <div className="font-bold text-lg text-gray-800 dark:text-gray-100">10 зелёных = 1 синее</div>
+              <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Накопите зелёные для более серьёзных желаний</div>
             </div>
             
-            <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-red-50 rounded-xl border border-red-200">
+            <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-red-50 dark:from-blue-900/30 dark:to-red-900/30 rounded-xl border border-red-200 dark:border-red-700">
               <div className="text-3xl mb-2">💙 → ❤️</div>
-              <div className="font-bold text-lg text-gray-800">10 синих = 1 красное</div>
-              <div className="text-sm text-gray-600 mt-1">Самые ценные желания требуют терпения</div>
+              <div className="font-bold text-lg text-gray-800 dark:text-gray-100">10 синих = 1 красное</div>
+              <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Самые ценные желания требуют терпения</div>
             </div>
           </div>
         </div>
 
         {/* Tips */}
-        <div className="mt-8 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl border-2 border-yellow-200 p-6 shadow-lg">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="mt-8 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-2xl border-2 border-yellow-200 dark:border-yellow-700 p-6 shadow-lg">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
             <span>💡</span>
             Советы по использованию
           </h2>
@@ -158,29 +158,29 @@ export default function RulesPage() {
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <span className="text-green-500 font-bold">✓</span>
-                <span className="text-gray-700">Начинайте с зелёных желаний для знакомства с системой</span>
+                <span className="text-gray-700 dark:text-gray-300">Начинайте с зелёных желаний для знакомства с системой</span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-green-500 font-bold">✓</span>
-                <span className="text-gray-700">Будьте конкретными в описании желаний</span>
+                <span className="text-gray-700 dark:text-gray-300">Будьте конкретными в описании желаний</span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-green-500 font-bold">✓</span>
-                <span className="text-gray-700">Обсуждайте красные желания заранее</span>
+                <span className="text-gray-700 dark:text-gray-300">Обсуждайте красные желания заранее</span>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <span className="text-blue-500 font-bold">ℹ</span>
-                <span className="text-gray-700">Исполнение желания должно приносить радость обеим сторонам</span>
+                <span className="text-gray-700 dark:text-gray-300">Исполнение желания должно приносить радость обеим сторонам</span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-blue-500 font-bold">ℹ</span>
-                <span className="text-gray-700">Можно отказаться от исполнения, если это неудобно</span>
+                <span className="text-gray-700 dark:text-gray-300">Можно отказаться от исполнения, если это неудобно</span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-blue-500 font-bold">ℹ</span>
-                <span className="text-gray-700">Дарите желания за хорошие поступки и помощь</span>
+                <span className="text-gray-700 dark:text-gray-300">Дарите желания за хорошие поступки и помощь</span>
               </div>
             </div>
           </div>
