@@ -427,19 +427,113 @@ export async function getAllUsers(): Promise<User[]> {
   return result as User[];
 }
 
-// Желания
+// Enhanced Wish Management Functions
 export async function createWish(
   type: 'green' | 'blue' | 'red',
   description: string,
   authorId: string,
-  assigneeId?: string
+  assigneeId?: string,
+  category: string = 'general',
+  isShared: boolean = false,
+  isGift: boolean = false,
+  isHistorical: boolean = false,
+  priority: number = 1
 ): Promise<Wish> {
   const result = await sql`
-    INSERT INTO wishes (type, description, author_id, assignee_id) 
-    VALUES (${type}, ${description}, ${authorId}, ${assigneeId}) 
+    INSERT INTO wishes (type, description, author_id, assignee_id, category, is_shared, is_gift, is_historical, priority) 
+    VALUES (${type}, ${description}, ${authorId}, ${assigneeId}, ${category}, ${isShared}, ${isGift}, ${isHistorical}, ${priority}) 
     RETURNING *
   `;
   return result[0] as Wish;
+}
+
+export async function createSharedWish(
+  type: 'green' | 'blue' | 'red',
+  description: string,
+  authorId: string,
+  partnerId: string,
+  category: string = 'general',
+  priority: number = 1,
+  isHistorical: boolean = false
+): Promise<Wish> {
+  const result = await sql`
+    INSERT INTO wishes (type, description, author_id, assignee_id, category, is_shared, priority, is_historical) 
+    VALUES (${type}, ${description}, ${authorId}, ${partnerId}, ${category}, true, ${priority}, ${isHistorical}) 
+    RETURNING *
+  `;
+  return result[0] as Wish;
+}
+
+export async function approveSharedWish(wishId: string, approverId: string): Promise<Wish> {
+  const result = await sql`
+    UPDATE wishes 
+    SET shared_approved_by = ${approverId}
+    WHERE id = ${wishId} AND is_shared = true AND shared_approved_by IS NULL
+    RETURNING *
+  `;
+  
+  if (!result[0]) {
+    throw new Error('Shared wish not found or already approved');
+  }
+  
+  return result[0] as Wish;
+}
+
+export async function createGiftWish(
+  type: 'green' | 'blue' | 'red',
+  fromUserId: string,
+  toUserId: string,
+  amount: number = 1,
+  message?: string
+): Promise<Wish[]> {
+  const wishes: Wish[] = [];
+  
+  for (let i = 0; i < amount; i++) {
+    const description = message || `Подарок от партнера`;
+    const result = await sql`
+      INSERT INTO wishes (type, description, author_id, assignee_id, category, is_gift, status) 
+      VALUES (${type}, ${description}, ${fromUserId}, ${toUserId}, 'gift', true, 'completed') 
+      RETURNING *
+    `;
+    wishes.push(result[0] as Wish);
+  }
+  
+  return wishes;
+}
+
+export async function getWishesByUser(userId: string, type: 'created' | 'assigned' | 'shared' = 'created'): Promise<Wish[]> {
+  let result;
+  
+  if (type === 'created') {
+    result = await sql`
+      SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+      FROM wishes w 
+      LEFT JOIN users u1 ON w.author_id = u1.id 
+      LEFT JOIN users u2 ON w.assignee_id = u2.id 
+      WHERE w.author_id = ${userId}
+      ORDER BY w.created_at DESC
+    `;
+  } else if (type === 'assigned') {
+    result = await sql`
+      SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+      FROM wishes w 
+      LEFT JOIN users u1 ON w.author_id = u1.id 
+      LEFT JOIN users u2 ON w.assignee_id = u2.id 
+      WHERE w.assignee_id = ${userId}
+      ORDER BY w.created_at DESC
+    `;
+  } else { // shared
+    result = await sql`
+      SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+      FROM wishes w 
+      LEFT JOIN users u1 ON w.author_id = u1.id 
+      LEFT JOIN users u2 ON w.assignee_id = u2.id 
+      WHERE w.is_shared = true AND (w.author_id = ${userId} OR w.assignee_id = ${userId})
+      ORDER BY w.created_at DESC
+    `;
+  }
+  
+  return result as Wish[];
 }
 
 export async function getActiveWishes(userId?: string): Promise<Wish[]> {
@@ -450,7 +544,7 @@ export async function getActiveWishes(userId?: string): Promise<Wish[]> {
         LEFT JOIN users u1 ON w.author_id = u1.id 
         LEFT JOIN users u2 ON w.assignee_id = u2.id 
         WHERE w.status = 'active' AND (w.author_id = ${userId} OR w.assignee_id = ${userId})
-        ORDER BY w.created_at DESC
+        ORDER BY w.priority DESC, w.created_at DESC
       `
     : await sql`
         SELECT w.*, u1.name as author_name, u2.name as assignee_name 
@@ -458,7 +552,29 @@ export async function getActiveWishes(userId?: string): Promise<Wish[]> {
         LEFT JOIN users u1 ON w.author_id = u1.id 
         LEFT JOIN users u2 ON w.assignee_id = u2.id 
         WHERE w.status = 'active' 
-        ORDER BY w.created_at DESC
+        ORDER BY w.priority DESC, w.created_at DESC
+      `;
+  
+  return result as Wish[];
+}
+
+export async function getWishesByCategory(category: string, userId?: string): Promise<Wish[]> {
+  const result = userId
+    ? await sql`
+        SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+        FROM wishes w 
+        LEFT JOIN users u1 ON w.author_id = u1.id 
+        LEFT JOIN users u2 ON w.assignee_id = u2.id 
+        WHERE w.category = ${category} AND (w.author_id = ${userId} OR w.assignee_id = ${userId})
+        ORDER BY w.priority DESC, w.created_at DESC
+      `
+    : await sql`
+        SELECT w.*, u1.name as author_name, u2.name as assignee_name 
+        FROM wishes w 
+        LEFT JOIN users u1 ON w.author_id = u1.id 
+        LEFT JOIN users u2 ON w.assignee_id = u2.id 
+        WHERE w.category = ${category}
+        ORDER BY w.priority DESC, w.created_at DESC
       `;
   
   return result as Wish[];
@@ -469,6 +585,16 @@ export async function completeWish(wishId: string): Promise<Wish> {
     UPDATE wishes 
     SET status = 'completed', completed_at = NOW() 
     WHERE id = ${wishId} 
+    RETURNING *
+  `;
+  return result[0] as Wish;
+}
+
+export async function updateWishPriority(wishId: string, priority: number): Promise<Wish> {
+  const result = await sql`
+    UPDATE wishes 
+    SET priority = ${priority}
+    WHERE id = ${wishId}
     RETURNING *
   `;
   return result[0] as Wish;
@@ -561,7 +687,7 @@ export async function getUserTransactions(userId: string, limit = 50): Promise<T
 
 // Quest Economy System Functions
 
-// Quests
+// Enhanced Quest Management Functions
 export async function createQuest(
   title: string,
   description: string,
@@ -597,7 +723,110 @@ export async function getQuestsByUser(userId: string, status?: string): Promise<
   return result as Quest[];
 }
 
-// Random Events
+export async function getQuestById(questId: string): Promise<Quest | null> {
+  const result = await sql`
+    SELECT * FROM quests WHERE id = ${questId}
+  `;
+  return result[0] as Quest || null;
+}
+
+export async function updateQuest(
+  questId: string,
+  updates: Partial<Pick<Quest, 'title' | 'description' | 'category' | 'difficulty' | 'reward_type' | 'reward_amount' | 'experience_reward' | 'due_date'>>
+): Promise<Quest> {
+  const setClause = Object.entries(updates)
+    .filter(([_, value]) => value !== undefined)
+    .map(([key, _]) => `${key} = $${key}`)
+    .join(', ');
+  
+  if (!setClause) {
+    throw new Error('No valid updates provided');
+  }
+
+  // Simple approach: update each field individually if provided
+  let result;
+  if (updates.title !== undefined) {
+    result = await sql`UPDATE quests SET title = ${updates.title}, updated_at = NOW() WHERE id = ${questId} RETURNING *`;
+  }
+  if (updates.description !== undefined) {
+    result = await sql`UPDATE quests SET description = ${updates.description} WHERE id = ${questId} RETURNING *`;
+  }
+  if (updates.category !== undefined) {
+    result = await sql`UPDATE quests SET category = ${updates.category} WHERE id = ${questId} RETURNING *`;
+  }
+  if (updates.difficulty !== undefined) {
+    result = await sql`UPDATE quests SET difficulty = ${updates.difficulty} WHERE id = ${questId} RETURNING *`;
+  }
+  if (updates.reward_type !== undefined) {
+    result = await sql`UPDATE quests SET reward_type = ${updates.reward_type} WHERE id = ${questId} RETURNING *`;
+  }
+  if (updates.reward_amount !== undefined) {
+    result = await sql`UPDATE quests SET reward_amount = ${updates.reward_amount} WHERE id = ${questId} RETURNING *`;
+  }
+  if (updates.experience_reward !== undefined) {
+    result = await sql`UPDATE quests SET experience_reward = ${updates.experience_reward} WHERE id = ${questId} RETURNING *`;
+  }
+  if (updates.due_date !== undefined) {
+    result = await sql`UPDATE quests SET due_date = ${updates.due_date} WHERE id = ${questId} RETURNING *`;
+  }
+
+  // If no specific updates, just return the current quest
+  if (!result) {
+    result = await sql`SELECT * FROM quests WHERE id = ${questId}`;
+  }
+
+  return result[0] as Quest;
+}
+
+export async function completeQuest(questId: string, completedBy: string): Promise<Quest> {
+  const result = await sql`
+    UPDATE quests 
+    SET status = 'completed', completed_at = NOW()
+    WHERE id = ${questId} AND author_id = ${completedBy}
+    RETURNING *
+  `;
+  
+  if (!result[0]) {
+    throw new Error('Quest not found or user not authorized to complete it');
+  }
+  
+  return result[0] as Quest;
+}
+
+export async function cancelQuest(questId: string, userId: string): Promise<Quest> {
+  const result = await sql`
+    UPDATE quests 
+    SET status = 'cancelled'
+    WHERE id = ${questId} AND author_id = ${userId}
+    RETURNING *
+  `;
+  
+  if (!result[0]) {
+    throw new Error('Quest not found or user not authorized to cancel it');
+  }
+  
+  return result[0] as Quest;
+}
+
+export async function getExpiredQuests(): Promise<Quest[]> {
+  const result = await sql`
+    SELECT * FROM quests 
+    WHERE status = 'active' AND due_date < NOW()
+    ORDER BY due_date ASC
+  `;
+  return result as Quest[];
+}
+
+export async function markQuestsAsExpired(): Promise<number> {
+  const result = await sql`
+    UPDATE quests 
+    SET status = 'expired'
+    WHERE status = 'active' AND due_date < NOW()
+  `;
+  return result.length || 0;
+}
+
+// Enhanced Random Event Functions
 export async function createRandomEvent(
   userId: string,
   title: string,
@@ -623,6 +852,67 @@ export async function getCurrentEvent(userId: string): Promise<RandomEvent | nul
     LIMIT 1
   `;
   return result[0] as RandomEvent || null;
+}
+
+export async function getEventById(eventId: string): Promise<RandomEvent | null> {
+  const result = await sql`
+    SELECT * FROM random_events WHERE id = ${eventId}
+  `;
+  return result[0] as RandomEvent || null;
+}
+
+export async function completeRandomEvent(eventId: string, completedBy: string): Promise<RandomEvent> {
+  // First check if the event exists and get the user_id
+  const event = await getEventById(eventId);
+  if (!event) {
+    throw new Error('Event not found');
+  }
+  
+  // Ensure the completer is not the same as the event owner
+  if (event.user_id === completedBy) {
+    throw new Error('Users cannot complete their own events');
+  }
+  
+  const result = await sql`
+    UPDATE random_events 
+    SET status = 'completed', completed_at = NOW(), completed_by = ${completedBy}
+    WHERE id = ${eventId} AND status = 'active'
+    RETURNING *
+  `;
+  
+  if (!result[0]) {
+    throw new Error('Event not found or already completed');
+  }
+  
+  return result[0] as RandomEvent;
+}
+
+export async function getExpiredEvents(): Promise<RandomEvent[]> {
+  const result = await sql`
+    SELECT * FROM random_events 
+    WHERE status = 'active' AND expires_at < NOW()
+    ORDER BY expires_at ASC
+  `;
+  return result as RandomEvent[];
+}
+
+export async function markEventsAsExpired(): Promise<number> {
+  const result = await sql`
+    UPDATE random_events 
+    SET status = 'expired'
+    WHERE status = 'active' AND expires_at < NOW()
+  `;
+  return result.length || 0;
+}
+
+export async function getUserEventHistory(userId: string, limit: number = 50): Promise<RandomEvent[]> {
+  const result = await sql`
+    SELECT * FROM random_events 
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return result as RandomEvent[];
 }
 
 // Wish Categories
@@ -675,11 +965,208 @@ export async function updateEconomySetting(key: string, value: any, description?
   return result[0] as EconomySetting;
 }
 
+// Enhanced Rank System Functions
+export async function calculateUserRank(userId: string): Promise<{ currentRank: Rank | null; nextRank: Rank | null; experienceToNext: number }> {
+  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  if (!user[0]) {
+    throw new Error('User not found');
+  }
+
+  const currentRank = await getUserRank(user[0].experience_points);
+  const allRanks = await getRanks();
+  
+  // Find next rank
+  const nextRank = allRanks.find(rank => rank.min_experience > user[0].experience_points);
+  const experienceToNext = nextRank ? nextRank.min_experience - user[0].experience_points : 0;
+
+  return {
+    currentRank,
+    nextRank: nextRank || null,
+    experienceToNext
+  };
+}
+
+export async function createRank(
+  name: string,
+  minExperience: number,
+  dailyQuotaBonus: number = 0,
+  weeklyQuotaBonus: number = 0,
+  monthlyQuotaBonus: number = 0,
+  specialPrivileges: Record<string, any> = {},
+  emoji?: string
+): Promise<Rank> {
+  const result = await sql`
+    INSERT INTO ranks (name, min_experience, daily_quota_bonus, weekly_quota_bonus, monthly_quota_bonus, special_privileges, emoji)
+    VALUES (${name}, ${minExperience}, ${dailyQuotaBonus}, ${weeklyQuotaBonus}, ${monthlyQuotaBonus}, ${JSON.stringify(specialPrivileges)}, ${emoji})
+    RETURNING *
+  `;
+  return result[0] as Rank;
+}
+
+export async function getRankPrivileges(rankName: string): Promise<Record<string, any>> {
+  const result = await sql`
+    SELECT special_privileges FROM ranks WHERE name = ${rankName}
+  `;
+  return result[0]?.special_privileges || {};
+}
+
+// Enhanced Economy Functions
+export async function validateGiftQuota(userId: string, giftCount: number = 1): Promise<{
+  canGift: boolean;
+  quotaType: 'daily' | 'weekly' | 'monthly' | null;
+  remainingQuota: number;
+  resetTime: Date | null;
+}> {
+  const quotas = await getUserQuotas(userId);
+  
+  // Check daily quota first
+  if (quotas.daily.used + giftCount > quotas.daily.limit) {
+    return {
+      canGift: false,
+      quotaType: 'daily',
+      remainingQuota: quotas.daily.limit - quotas.daily.used,
+      resetTime: quotas.daily.reset_time
+    };
+  }
+  
+  // Check weekly quota
+  if (quotas.weekly.used + giftCount > quotas.weekly.limit) {
+    return {
+      canGift: false,
+      quotaType: 'weekly',
+      remainingQuota: quotas.weekly.limit - quotas.weekly.used,
+      resetTime: quotas.weekly.reset_time
+    };
+  }
+  
+  // Check monthly quota
+  if (quotas.monthly.used + giftCount > quotas.monthly.limit) {
+    return {
+      canGift: false,
+      quotaType: 'monthly',
+      remainingQuota: quotas.monthly.limit - quotas.monthly.used,
+      resetTime: quotas.monthly.reset_time
+    };
+  }
+  
+  return {
+    canGift: true,
+    quotaType: null,
+    remainingQuota: Math.min(
+      quotas.daily.limit - quotas.daily.used,
+      quotas.weekly.limit - quotas.weekly.used,
+      quotas.monthly.limit - quotas.monthly.used
+    ),
+    resetTime: null
+  };
+}
+
+export async function processGiftTransaction(
+  fromUserId: string,
+  toUserId: string,
+  type: 'green' | 'blue' | 'red',
+  amount: number = 1,
+  message?: string
+): Promise<{ wishes: Wish[]; experienceGained: number }> {
+  // Validate quota
+  const quotaCheck = await validateGiftQuota(fromUserId, amount);
+  if (!quotaCheck.canGift) {
+    throw new Error(`Gift quota exceeded: ${quotaCheck.quotaType} limit reached`);
+  }
+
+  try {
+    await sql`BEGIN`;
+
+    // Create gift wishes
+    const wishes = await createGiftWish(type, fromUserId, toUserId, amount, message);
+
+    // Update quotas
+    await updateUserQuotas(fromUserId, amount, amount, amount);
+
+    // Calculate and add experience
+    const experienceGained = amount * 5; // 5 experience per gift
+    await updateUserExperience(fromUserId, experienceGained);
+
+    // Add transaction record
+    await addTransaction(
+      toUserId,
+      'credit',
+      type,
+      amount,
+      `Gift from partner: ${message || 'No message'}`,
+      wishes[0]?.id
+    );
+
+    await sql`COMMIT`;
+
+    return { wishes, experienceGained };
+  } catch (error) {
+    await sql`ROLLBACK`;
+    throw error;
+  }
+}
+
+// Statistics and Analytics Functions
+export async function getUserStats(userId: string): Promise<{
+  total_quests_created: number;
+  total_quests_completed: number;
+  total_events_completed: number;
+  total_wishes_gifted: number;
+  total_experience: number;
+  current_rank: string;
+  completion_rate: number;
+}> {
+  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  if (!user[0]) {
+    throw new Error('User not found');
+  }
+
+  const questsCreated = await sql`
+    SELECT COUNT(*) as count FROM quests WHERE author_id = ${userId}
+  `;
+
+  const questsCompleted = await sql`
+    SELECT COUNT(*) as count FROM quests WHERE assignee_id = ${userId} AND status = 'completed'
+  `;
+
+  const eventsCompleted = await sql`
+    SELECT COUNT(*) as count FROM random_events WHERE completed_by = ${userId}
+  `;
+
+  const wishesGifted = await sql`
+    SELECT COUNT(*) as count FROM wishes WHERE author_id = ${userId} AND is_gift = true
+  `;
+
+  const totalQuests = parseInt(questsCreated[0].count);
+  const completedQuests = parseInt(questsCompleted[0].count);
+  const completionRate = totalQuests > 0 ? (completedQuests / totalQuests) * 100 : 0;
+
+  return {
+    total_quests_created: totalQuests,
+    total_quests_completed: completedQuests,
+    total_events_completed: parseInt(eventsCompleted[0].count),
+    total_wishes_gifted: parseInt(wishesGifted[0].count),
+    total_experience: user[0].experience_points,
+    current_rank: user[0].rank,
+    completion_rate: Math.round(completionRate * 100) / 100
+  };
+}
+
 // Enhanced User Functions
 export async function updateUserExperience(userId: string, experienceGained: number): Promise<User> {
   const result = await sql`
     UPDATE users 
     SET experience_points = experience_points + ${experienceGained}, updated_at = NOW()
+    WHERE id = ${userId}
+    RETURNING *
+  `;
+  return result[0] as User;
+}
+
+export async function updateUserRank(userId: string, newRank: string): Promise<User> {
+  const result = await sql`
+    UPDATE users 
+    SET rank = ${newRank}, updated_at = NOW()
     WHERE id = ${userId}
     RETURNING *
   `;
@@ -747,4 +1234,100 @@ export async function resetUserQuotas(userId: string, resetDaily: boolean = fals
     RETURNING *
   `;
   return result[0] as User;
+}
+
+export async function getUserQuotas(userId: string): Promise<{
+  daily: { limit: number; used: number; reset_time: Date };
+  weekly: { limit: number; used: number; reset_time: Date };
+  monthly: { limit: number; used: number; reset_time: Date };
+}> {
+  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  if (!user[0]) {
+    throw new Error('User not found');
+  }
+
+  const userRank = await getUserRank(user[0].experience_points);
+  const baseSettings = await getEconomySetting('daily_gift_base_limit');
+  
+  const baseDailyLimit = baseSettings ? parseInt(baseSettings.setting_value) : 5;
+  const baseWeeklyLimit = baseDailyLimit * 4;
+  const baseMonthlyLimit = baseDailyLimit * 10;
+
+  const dailyBonus = userRank?.daily_quota_bonus || 0;
+  const weeklyBonus = userRank?.weekly_quota_bonus || 0;
+  const monthlyBonus = userRank?.monthly_quota_bonus || 0;
+
+  // Calculate reset times
+  const now = new Date();
+  const dailyReset = new Date(now);
+  dailyReset.setDate(dailyReset.getDate() + 1);
+  dailyReset.setHours(0, 0, 0, 0);
+
+  const weeklyReset = new Date(now);
+  weeklyReset.setDate(weeklyReset.getDate() + (7 - weeklyReset.getDay()));
+  weeklyReset.setHours(0, 0, 0, 0);
+
+  const monthlyReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  return {
+    daily: {
+      limit: baseDailyLimit + dailyBonus,
+      used: user[0].daily_quota_used,
+      reset_time: dailyReset
+    },
+    weekly: {
+      limit: baseWeeklyLimit + weeklyBonus,
+      used: user[0].weekly_quota_used,
+      reset_time: weeklyReset
+    },
+    monthly: {
+      limit: baseMonthlyLimit + monthlyBonus,
+      used: user[0].monthly_quota_used,
+      reset_time: monthlyReset
+    }
+  };
+}
+
+export async function checkAndResetQuotas(userId: string): Promise<User> {
+  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  if (!user[0]) {
+    throw new Error('User not found');
+  }
+
+  const now = new Date();
+  const lastReset = new Date(user[0].last_quota_reset);
+  
+  let needsReset = false;
+  let resetDaily = false;
+  let resetWeekly = false;
+  let resetMonthly = false;
+
+  // Check if daily reset is needed
+  if (now.getDate() !== lastReset.getDate() || now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+    resetDaily = true;
+    needsReset = true;
+  }
+
+  // Check if weekly reset is needed (assuming week starts on Sunday)
+  const nowWeekStart = new Date(now);
+  nowWeekStart.setDate(now.getDate() - now.getDay());
+  const lastResetWeekStart = new Date(lastReset);
+  lastResetWeekStart.setDate(lastReset.getDate() - lastReset.getDay());
+  
+  if (nowWeekStart.getTime() > lastResetWeekStart.getTime()) {
+    resetWeekly = true;
+    needsReset = true;
+  }
+
+  // Check if monthly reset is needed
+  if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+    resetMonthly = true;
+    needsReset = true;
+  }
+
+  if (needsReset) {
+    return await resetUserQuotas(userId, resetDaily, resetWeekly, resetMonthly);
+  }
+
+  return user[0] as User;
 }

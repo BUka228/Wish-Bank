@@ -2,23 +2,24 @@
 
 - [x] 1. Database Schema Migration and Core Infrastructure
 
-
   - Create new database tables for quests, events, ranks, and enhanced wishes
   - Add migration scripts for extending existing user and wish tables
   - Implement database indexes for optimal performance
   - Create seed data for ranks and wish categories
   - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1, 9.1, 10.1_
 
-- [ ] 2. Enhanced Database Models and Interfaces
+- [x] 2. Enhanced Database Models and Interfaces
 
-  - [ ] 2.1 Create TypeScript interfaces for new data models
+
+  - [x] 2.1 Create TypeScript interfaces for new data models
 
     - Define Quest, RandomEvent, EnhancedWish, Rank, and WishCategory interfaces
     - Extend existing User interface with rank and economy fields
     - Create EconomyQuotas and RankPrivileges interfaces
     - _Requirements: 1.1, 2.1, 9.1_
 
-  - [ ] 2.2 Implement enhanced database functions
+  - [x] 2.2 Implement enhanced database functions
+
     - Extend db.ts with quest management functions (create, read, update, complete)
     - Add random event database operations
     - Implement enhanced wish operations with categories and sharing
