@@ -5,7 +5,7 @@ import { Rank, UserStats } from '@/types/quest-economy';
 import RankBadge from './RankBadge';
 
 interface RankProgressProps {
-  currentUserId: string;
+  userId: string;
 }
 
 interface RankProgressData {
@@ -22,7 +22,7 @@ interface RankProgressData {
   }[];
 }
 
-export default function RankProgress({ currentUserId }: RankProgressProps) {
+export default function RankProgress({ userId }: RankProgressProps) {
   const [progressData, setProgressData] = useState<RankProgressData | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);

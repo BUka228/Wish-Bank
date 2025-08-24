@@ -1,61 +1,53 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getUserFromRequest } from '../../../../../lib/telegram-auth';
-import { approveSharedWish } from '../../../../../lib/db';
-import { RankCalculator } from '../../../../../lib/rank-calculator';
-
-const rankCalculator = new RankCalculator();
+import { db } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'PUT') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'POST') {
+    try {
+      const { id } = req.query;
+      const { userId } = req.body;
 
-  try {
-    const user = await getUserFromRequest(req);
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      if (!id || typeof id !== 'string') {
+        return res.status(400).json({ error: 'Wish ID is required' });
+      }
+
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+
+      // Get the wish to verify it's a shared wish and user has permission to approve
+      const wishResult = await db.query`
+        SELECT * FROM wishes WHERE id = ${id} AND is_shared = true
+      `;
+
+      if (wishResult.length === 0) {
+        return res.status(404).json({ error: 'Shared wish not found' });
+      }
+
+      const wish = wishResult[0];
+
+      // Check if user is the assignee (can approve wishes assigned to them)
+      // or if they're the partner of the author
+      if (wish.assignee_id !== userId && wish.author_id !== userId) {
+        return res.status(403).json({ error: 'No permission to approve this wish' });
+      }
+
+      // Approve the shared wish
+      const result = await db.query`
+        UPDATE wishes 
+        SET shared_approved_by = ${userId}, status = 'active', updated_at = NOW()
+        WHERE id = ${id}
+        RETURNING *
+      `;
+
+      const updatedWish = result[0];
+      res.status(200).json({ wish: updatedWish });
+    } catch (error) {
+      console.error('Error approving shared wish:', error);
+      res.status(500).json({ error: 'Failed to approve shared wish' });
     }
-
-    const { id } = req.query;
-    const sharedWishId = parseInt(id as string);
-
-    if (isNaN(sharedWishId)) {
-      return res.status(400).json({ error: 'Invalid shared wish ID' });
-    }
-
-    // Check if user has permission to approve shared wishes
-    const userRank = rankCalculator.getCurrentRank(user.experience || 0);
-    if (!rankCalculator.hasPrivilege(userRank, 'canApproveSharedWishes')) {
-      return res.status(403).json({ 
-        error: 'Insufficient rank to approve shared wishes' 
-      });
-    }
-
-    const { approved, assignedTo, comments } = req.body;
-
-    if (typeof approved !== 'boolean') {
-      return res.status(400).json({ 
-        error: 'Missing required field: approved (boolean)' 
-      });
-    }
-
-    if (!approved) {
-      return res.status(400).json({ error: 'Rejection of shared wishes not implemented yet' });
-    }
-
-    const updatedWish = await approveSharedWish(String(sharedWishId), user.id);
-
-    if (!updatedWish) {
-      return res.status(404).json({ error: 'Shared wish not found' });
-    }
-
-    return res.status(200).json({ 
-      wish: updatedWish,
-      message: approved ? 'Shared wish approved' : 'Shared wish rejected'
-    });
-
-  } catch (error) {
-    console.error('Approve shared wish error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+  } else {
+    res.setHeader('Allow', ['POST']);
+    res.status(405).json({ error: 'Method not allowed' });
   }
 }

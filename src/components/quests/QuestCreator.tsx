@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import { CreateQuestRequest } from '@/types/quest-economy';
+import { TouchOptimizedButton } from '../TouchInteractions';
 
 interface QuestCreatorProps {
-  onCreateQuest: (quest: CreateQuestRequest) => Promise<void>;
+  currentUserId: string;
+  onQuestCreated: () => void;
   onCancel: () => void;
-  assigneeId: string;
-  assigneeName: string;
-  categories?: string[];
 }
 
 const difficultyOptions = [
@@ -36,17 +35,15 @@ const defaultCategories = [
 ];
 
 export default function QuestCreator({ 
-  onCreateQuest, 
-  onCancel, 
-  assigneeId, 
-  assigneeName,
-  categories = defaultCategories 
+  currentUserId,
+  onQuestCreated, 
+  onCancel
 }: QuestCreatorProps) {
   const [formData, setFormData] = useState<CreateQuestRequest>({
     title: '',
     description: '',
-    assignee_id: assigneeId,
-    category: categories[0],
+    assignee_id: '', // Will be set when partner is selected
+    category: defaultCategories[0],
     difficulty: 'easy',
     reward_type: 'green',
     reward_amount: 1,
@@ -96,7 +93,20 @@ export default function QuestCreator({
 
     setIsSubmitting(true);
     try {
-      await onCreateQuest(formData);
+      const response = await fetch('/api/quests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          author_id: currentUserId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create quest');
+      }
+
+      onQuestCreated();
     } catch (error) {
       console.error('Ошибка создания квеста:', error);
     } finally {
@@ -116,26 +126,36 @@ export default function QuestCreator({
   const selectedRewardType = rewardTypeOptions.find(r => r.value === formData.reward_type);
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+    <div className="space-y-4">
+      <div className="text-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-200">
           ⚡ Создать новый квест
         </h2>
-        <button
-          onClick={onCancel}
-          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          <span className="font-semibold">Исполнитель:</span> {assigneeName}
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Создайте задание для выполнения
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        {/* Assignee Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Исполнитель *
+          </label>
+          <input
+            type="text"
+            value={formData.assignee_id}
+            onChange={(e) => updateFormData('assignee_id', e.target.value)}
+            placeholder="ID партнера"
+            className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.assignee_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+            }`}
+          />
+          {errors.assignee_id && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.assignee_id}</p>
+          )}
+        </div>
+
         {/* Название квеста */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -146,7 +166,7 @@ export default function QuestCreator({
             value={formData.title}
             onChange={(e) => updateFormData('title', e.target.value)}
             placeholder="Например: Приготовить ужин на двоих"
-            className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base ${
               errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
             }`}
           />
@@ -164,8 +184,8 @@ export default function QuestCreator({
             value={formData.description}
             onChange={(e) => updateFormData('description', e.target.value)}
             placeholder="Подробно опишите, что нужно сделать..."
-            rows={4}
-            className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+            rows={3}
+            className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-base ${
               errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
             }`}
           />
@@ -174,7 +194,7 @@ export default function QuestCreator({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Категория */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -183,9 +203,9 @@ export default function QuestCreator({
             <select
               value={formData.category}
               onChange={(e) => updateFormData('category', e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             >
-              {categories.map(category => (
+              {defaultCategories.map(category => (
                 <option key={category} value={category}>
                   {category}
                 </option>
@@ -201,7 +221,7 @@ export default function QuestCreator({
             <select
               value={formData.difficulty}
               onChange={(e) => updateFormData('difficulty', e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             >
               {difficultyOptions.map(option => (
                 <option key={option.value} value={option.value}>
@@ -210,14 +230,14 @@ export default function QuestCreator({
               ))}
             </select>
             {selectedDifficulty && (
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 {selectedDifficulty.description}
               </p>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Тип награды */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -226,7 +246,7 @@ export default function QuestCreator({
             <select
               value={formData.reward_type}
               onChange={(e) => updateFormData('reward_type', e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             >
               {rewardTypeOptions.map(option => (
                 <option key={option.value} value={option.value}>
@@ -247,7 +267,7 @@ export default function QuestCreator({
               max="100"
               value={formData.reward_amount}
               onChange={(e) => updateFormData('reward_amount', parseInt(e.target.value))}
-              className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base ${
                 errors.reward_amount ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
             />
@@ -314,21 +334,22 @@ export default function QuestCreator({
         </div>
 
         {/* Кнопки */}
-        <div className="flex gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-4 rounded-xl font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px] text-base"
           >
             {isSubmitting ? '⏳ Создание...' : '⚡ Создать квест'}
           </button>
-          <button
-            type="button"
+          <TouchOptimizedButton
             onClick={onCancel}
-            className="px-6 py-3 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-all duration-200"
+            variant="secondary"
+            size="large"
+            className="sm:w-auto"
           >
             Отменить
-          </button>
+          </TouchOptimizedButton>
         </div>
       </form>
     </div>

@@ -5,12 +5,10 @@ import { EconomyQuotas, EconomyMetrics, UserStats } from '@/types/quest-economy'
 import QuotaDisplay from './QuotaDisplay';
 
 interface EconomyDashboardProps {
-  currentUserId: string;
-  partnerUserId: string;
-  partnerName: string;
+  userId: string;
 }
 
-export default function EconomyDashboard({ currentUserId, partnerUserId, partnerName }: EconomyDashboardProps) {
+export default function EconomyDashboard({ userId }: EconomyDashboardProps) {
   const [quotas, setQuotas] = useState<EconomyQuotas | null>(null);
   const [metrics, setMetrics] = useState<EconomyMetrics | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -24,9 +22,9 @@ export default function EconomyDashboard({ currentUserId, partnerUserId, partner
       
       // Параллельная загрузка всех данных
       const [quotasRes, metricsRes, statsRes] = await Promise.all([
-        fetch('/api/economy/quotas'),
-        fetch('/api/economy/metrics'),
-        fetch('/api/economy/stats')
+        fetch(`/api/economy/quotas?userId=${userId}`),
+        fetch(`/api/economy/metrics?userId=${userId}`),
+        fetch(`/api/economy/stats?userId=${userId}`)
       ]);
 
       if (quotasRes.ok) {
@@ -295,7 +293,7 @@ export default function EconomyDashboard({ currentUserId, partnerUserId, partner
             <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 🎁 <strong>Используйте квоты:</strong> У вас есть неиспользованные подарки на сегодня. 
-                Порадуйте {partnerName}!
+                Порадуйте своего партнера!
               </p>
             </div>
           )}

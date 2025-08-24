@@ -4,59 +4,38 @@ import { useState, useEffect } from 'react';
 import { EnhancedWish, WishFilter as WishFilterType } from '@/types/quest-economy';
 import WishCard from '../WishCard';
 import WishFilter from './WishFilter';
+import { SwipeableTabs } from '../TouchInteractions';
 
 interface WishTabsProps {
   currentUserId: string;
-  partnerUserId: string;
-  partnerName: string;
+  wishes: {
+    my: EnhancedWish[];
+    assigned: EnhancedWish[];
+    shared: EnhancedWish[];
+  };
+  onWishUpdate: () => void;
 }
 
 type TabType = 'my' | 'assigned' | 'shared';
 
-export default function WishTabs({ currentUserId, partnerUserId, partnerName }: WishTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('my');
-  const [wishes, setWishes] = useState<EnhancedWish[]>([]);
-  const [filteredWishes, setFilteredWishes] = useState<EnhancedWish[]>([]);
+export default function WishTabs({ currentUserId, wishes, onWishUpdate }: WishTabsProps) {
+  const [activeTab, setActiveTab] = useState(0); // Changed to number for SwipeableTabs
+  const [filteredWishes, setFilteredWishes] = useState<{
+    my: EnhancedWish[];
+    assigned: EnhancedWish[];
+    shared: EnhancedWish[];
+  }>({ my: [], assigned: [], shared: [] });
   const [filter, setFilter] = useState<WishFilterType>({});
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Загрузка желаний
-  const loadWishes = async () => {
-    try {
-      setLoading(true);
-      let endpoint = '';
-      
-      switch (activeTab) {
-        case 'my':
-          endpoint = '/api/wishes/my';
-          break;
-        case 'assigned':
-          endpoint = '/api/wishes/assigned';
-          break;
-        case 'shared':
-          endpoint = '/api/wishes/shared';
-          break;
-      }
+  const tabTypes: TabType[] = ['my', 'assigned', 'shared'];
+  const currentTabType = tabTypes[activeTab];
 
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки желаний');
-      }
-      const data = await response.json();
-      setWishes(data.wishes || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Filter wishes for each tab
+  const filterWishesForTab = (tabWishes: EnhancedWish[]) => {
+    let filtered = [...tabWishes];
 
-  // Фильтрация желаний
-  useEffect(() => {
-    let filtered = [...wishes];
-
-    // Применение фильтров
+    // Apply filters
     if (filter.status) {
       filtered = filtered.filter(w => w.status === filter.status);
     }
@@ -79,7 +58,7 @@ export default function WishTabs({ currentUserId, partnerUserId, partnerName }: 
       filtered = filtered.filter(w => w.priority === filter.priority);
     }
 
-    // Сортировка: активные сначала, потом по приоритету и дате
+    // Sort: active first, then by priority and date
     filtered.sort((a, b) => {
       if (a.status === 'active' && b.status !== 'active') return -1;
       if (a.status !== 'active' && b.status === 'active') return 1;
@@ -87,15 +66,19 @@ export default function WishTabs({ currentUserId, partnerUserId, partnerName }: 
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
-    setFilteredWishes(filtered);
+    return filtered;
+  };
+
+  // Apply filters when wishes or filter changes
+  useEffect(() => {
+    setFilteredWishes({
+      my: filterWishesForTab(wishes.my),
+      assigned: filterWishesForTab(wishes.assigned),
+      shared: filterWishesForTab(wishes.shared)
+    });
   }, [wishes, filter]);
 
-  // Загрузка при смене вкладки
-  useEffect(() => {
-    loadWishes();
-  }, [activeTab]);
-
-  // Обработчики действий
+  // Action handlers
   const handleCompleteWish = async (wishId: string) => {
     try {
       const response = await fetch(`/api/wishes/${wishId}/complete`, {
@@ -106,7 +89,7 @@ export default function WishTabs({ currentUserId, partnerUserId, partnerName }: 
         throw new Error('Ошибка выполнения желания');
       }
 
-      await loadWishes();
+      onWishUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка выполнения желания');
     }
@@ -122,51 +105,88 @@ export default function WishTabs({ currentUserId, partnerUserId, partnerName }: 
         throw new Error('Ошибка отмены желания');
       }
 
-      await loadWishes();
+      onWishUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка отмены желания');
     }
   };
 
-  // Статистика для вкладок
+  // Statistics for tabs
   const stats = {
-    my: wishes.filter(w => w.author_id === currentUserId && !w.is_shared).length,
-    assigned: wishes.filter(w => w.assignee_id === currentUserId && !w.is_shared).length,
-    shared: wishes.filter(w => w.is_shared).length,
-    active: wishes.filter(w => w.status === 'active').length
+    my: wishes.my.length,
+    assigned: wishes.assigned.length,
+    shared: wishes.shared.length
   };
 
-  const tabConfig = {
-    my: {
+  const tabLabels = [
+    `Мои (${stats.my})`,
+    `Для меня (${stats.assigned})`,
+    `Общие (${stats.shared})`
+  ];
+
+  const tabConfig = [
+    {
       label: 'Мои желания',
       emoji: '⚡',
-      description: 'Желания, которые я создал',
-      color: 'bg-blue-500'
+      description: 'Желания, которые я создал'
     },
-    assigned: {
+    {
       label: 'Для меня',
       emoji: '🎯',
-      description: 'Желания, назначенные мне',
-      color: 'bg-green-500'
+      description: 'Желания, назначенные мне'
     },
-    shared: {
+    {
       label: 'Общие',
       emoji: '🤝',
-      description: 'Наши общие желания',
-      color: 'bg-purple-500'
+      description: 'Наши общие желания'
     }
-  };
+  ];
 
-  if (loading) {
+  const renderTabContent = (tabIndex: number) => {
+    const tabType = tabTypes[tabIndex];
+    const tabWishes = filteredWishes[tabType];
+    const config = tabConfig[tabIndex];
+
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center">
-          <div className="animate-spin text-4xl mb-4">💫</div>
-          <p className="text-gray-600 dark:text-gray-400">Загрузка желаний...</p>
+      <div className="p-4 space-y-4">
+        {/* Tab description */}
+        <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="font-semibold">{config.label}:</span> {config.description}
+          </p>
         </div>
+
+        {/* Wishes list */}
+        {tabWishes.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">{config.emoji}</div>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Желаний не найдено
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {tabType === 'my' 
+                ? 'Вы еще не создали ни одного желания'
+                : tabType === 'assigned'
+                ? 'Вам еще не назначили ни одного желания'
+                : 'У вас пока нет общих желаний'
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {tabWishes.map((wish) => (
+              <WishCard
+                key={wish.id}
+                wish={wish}
+                onComplete={handleCompleteWish}
+                currentUserId={currentUserId}
+              />
+            ))}
+          </div>
+        )}
       </div>
     );
-  }
+  };
 
   if (error) {
     return (
@@ -179,7 +199,7 @@ export default function WishTabs({ currentUserId, partnerUserId, partnerName }: 
           </div>
         </div>
         <button
-          onClick={loadWishes}
+          onClick={onWishUpdate}
           className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
         >
           Попробовать снова
@@ -190,86 +210,31 @@ export default function WishTabs({ currentUserId, partnerUserId, partnerName }: 
 
   return (
     <div className="space-y-6">
-      {/* Заголовок и вкладки */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-6">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">
           💫 Управление желаниями
         </h1>
-
-        {/* Вкладки */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          {(Object.keys(tabConfig) as TabType[]).map((tab) => {
-            const config = tabConfig[tab];
-            const count = tab === 'my' ? stats.my : tab === 'assigned' ? stats.assigned : stats.shared;
-            
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-                  activeTab === tab
-                    ? `${config.color} text-white shadow-lg`
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                <span className="text-xl">{config.emoji}</span>
-                <div className="text-left">
-                  <div className="font-semibold">{config.label}</div>
-                  <div className="text-xs opacity-80">({count})</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Описание активной вкладки */}
-        <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            <span className="font-semibold">{tabConfig[activeTab].label}:</span> {tabConfig[activeTab].description}
-          </p>
-        </div>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
+          Свайпайте влево/вправо для переключения между вкладками
+        </p>
       </div>
 
-      {/* Фильтры */}
+      {/* Filters */}
       <WishFilter
         filter={filter}
         onFilterChange={setFilter}
-        showSharedFilters={activeTab === 'shared'}
+        showSharedFilters={currentTabType === 'shared'}
       />
 
-      {/* Список желаний */}
-      <div className="space-y-4">
-        {filteredWishes.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 p-12 rounded-2xl border border-gray-200 dark:border-gray-700 text-center">
-            <div className="text-6xl mb-4">{tabConfig[activeTab].emoji}</div>
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
-              Желаний не найдено
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {activeTab === 'my' 
-                ? 'Вы еще не создали ни одного желания'
-                : activeTab === 'assigned'
-                ? 'Вам еще не назначили ни одного желания'
-                : 'У вас пока нет общих желаний'
-              }
-            </p>
-          </div>
-        ) : (
-          filteredWishes.map((wish) => (
-            <WishCard
-              key={wish.id}
-              wish={{
-                ...wish,
-                author_name: wish.author_id === currentUserId ? 'Вы' : partnerName,
-                assignee_name: wish.assignee_id === currentUserId ? 'Вы' : partnerName
-              }}
-              onComplete={handleCompleteWish}
-              onCancel={handleCancelWish}
-              currentUserId={currentUserId}
-            />
-          ))
-        )}
-      </div>
+      {/* Swipeable Tabs */}
+      <SwipeableTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        tabLabels={tabLabels}
+      >
+        {tabTypes.map((_, index) => renderTabContent(index))}
+      </SwipeableTabs>
     </div>
   );
 }

@@ -9,14 +9,13 @@ import QuestProgress from './QuestProgress';
 
 interface QuestBoardProps {
   currentUserId: string;
-  partnerUserId: string;
-  partnerName: string;
+  quests: Quest[];
+  onQuestUpdate: () => void;
 }
 
 type ViewMode = 'board' | 'create' | 'progress';
 
-export default function QuestBoard({ currentUserId, partnerUserId, partnerName }: QuestBoardProps) {
-  const [quests, setQuests] = useState<Quest[]>([]);
+export default function QuestBoard({ currentUserId, quests, onQuestUpdate }: QuestBoardProps) {
   const [filteredQuests, setFilteredQuests] = useState<Quest[]>([]);
   const [filter, setFilter] = useState<QuestFilterType>({});
   const [viewMode, setViewMode] = useState<ViewMode>('board');
@@ -24,22 +23,7 @@ export default function QuestBoard({ currentUserId, partnerUserId, partnerName }
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'created' | 'assigned'>('all');
 
-  // Загрузка квестов
-  const loadQuests = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/quests');
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки квестов');
-      }
-      const data = await response.json();
-      setQuests(data.quests || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Removed loadQuests function since quests are passed as props
 
   // Фильтрация квестов
   useEffect(() => {
@@ -79,34 +63,14 @@ export default function QuestBoard({ currentUserId, partnerUserId, partnerName }
     setFilteredQuests(filtered);
   }, [quests, filter, activeTab, currentUserId]);
 
-  // Загрузка при монтировании
+  // Initialize loading state
   useEffect(() => {
-    loadQuests();
+    setLoading(false);
   }, []);
 
-  // Создание квеста
-  const handleCreateQuest = async (questData: CreateQuestRequest) => {
-    try {
-      const response = await fetch('/api/quests', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(questData),
-      });
+  // Quest creation is handled in parent component
 
-      if (!response.ok) {
-        throw new Error('Ошибка создания квеста');
-      }
-
-      await loadQuests();
-      setViewMode('board');
-    } catch (err) {
-      throw err; // Пробрасываем ошибку для обработки в QuestCreator
-    }
-  };
-
-  // Завершение квеста
+  // Quest completion and cancellation
   const handleCompleteQuest = async (questId: string) => {
     try {
       const response = await fetch(`/api/quests/${questId}/complete`, {
@@ -117,13 +81,12 @@ export default function QuestBoard({ currentUserId, partnerUserId, partnerName }
         throw new Error('Ошибка завершения квеста');
       }
 
-      await loadQuests();
+      onQuestUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка завершения квеста');
     }
   };
 
-  // Отмена квеста
   const handleCancelQuest = async (questId: string) => {
     try {
       const response = await fetch(`/api/quests/${questId}`, {
@@ -134,7 +97,7 @@ export default function QuestBoard({ currentUserId, partnerUserId, partnerName }
         throw new Error('Ошибка отмены квеста');
       }
 
-      await loadQuests();
+      onQuestUpdate();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка отмены квеста');
     }
@@ -170,7 +133,7 @@ export default function QuestBoard({ currentUserId, partnerUserId, partnerName }
           </div>
         </div>
         <button
-          onClick={loadQuests}
+          onClick={onQuestUpdate}
           className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
         >
           Попробовать снова
@@ -208,12 +171,7 @@ export default function QuestBoard({ currentUserId, partnerUserId, partnerName }
             >
               📊 Прогресс
             </button>
-            <button
-              onClick={() => setViewMode('create')}
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              ➕ Создать квест
-            </button>
+
           </div>
         </div>
 
@@ -239,15 +197,6 @@ export default function QuestBoard({ currentUserId, partnerUserId, partnerName }
       </div>
 
       {/* Контент в зависимости от режима */}
-      {viewMode === 'create' && (
-        <QuestCreator
-          onCreateQuest={handleCreateQuest}
-          onCancel={() => setViewMode('board')}
-          assigneeId={partnerUserId}
-          assigneeName={partnerName}
-        />
-      )}
-
       {viewMode === 'progress' && (
         <QuestProgress
           quests={quests}
@@ -315,24 +264,13 @@ export default function QuestBoard({ currentUserId, partnerUserId, partnerName }
                     : 'Вам еще не назначили ни одного квеста'
                   }
                 </p>
-                {activeTab !== 'assigned' && (
-                  <button
-                    onClick={() => setViewMode('create')}
-                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl"
-                  >
-                    ➕ Создать первый квест
-                  </button>
-                )}
+
               </div>
             ) : (
               filteredQuests.map((quest) => (
                 <QuestCard
                   key={quest.id}
-                  quest={{
-                    ...quest,
-                    author_name: quest.author_id === currentUserId ? 'Вы' : partnerName,
-                    assignee_name: quest.assignee_id === currentUserId ? 'Вы' : partnerName
-                  }}
+                  quest={quest}
                   onComplete={handleCompleteQuest}
                   onCancel={handleCancelQuest}
                   currentUserId={currentUserId}

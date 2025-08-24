@@ -5,9 +5,7 @@ import { RandomEvent, EventFilter } from '@/types/quest-economy';
 import EventCard from './EventCard';
 
 interface EventHistoryProps {
-  currentUserId: string;
-  partnerUserId: string;
-  partnerName: string;
+  events: RandomEvent[];
 }
 
 function formatTimeAgo(date: Date): string {
@@ -22,30 +20,9 @@ function formatTimeAgo(date: Date): string {
   return `${diffMonths} мес назад`;
 }
 
-export default function EventHistory({ currentUserId, partnerUserId, partnerName }: EventHistoryProps) {
-  const [events, setEvents] = useState<RandomEvent[]>([]);
+export default function EventHistory({ events }: EventHistoryProps) {
   const [filteredEvents, setFilteredEvents] = useState<RandomEvent[]>([]);
-  const [filter, setFilter] = useState<EventFilter>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'completed' | 'expired'>('all');
-
-  // Загрузка истории событий
-  const loadEventHistory = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/events/history');
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки истории событий');
-      }
-      const data = await response.json();
-      setEvents(data.events || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Фильтрация событий
   useEffect(() => {
@@ -58,14 +35,6 @@ export default function EventHistory({ currentUserId, partnerUserId, partnerName
       filtered = filtered.filter(e => e.status === 'expired');
     }
 
-    // Применение дополнительных фильтров
-    if (filter.status) {
-      filtered = filtered.filter(e => e.status === filter.status);
-    }
-    if (filter.user_id) {
-      filtered = filtered.filter(e => e.user_id === filter.user_id);
-    }
-
     // Сортировка по дате (новые сначала)
     filtered.sort((a, b) => {
       const dateA = new Date(a.completed_at || a.expires_at).getTime();
@@ -74,52 +43,14 @@ export default function EventHistory({ currentUserId, partnerUserId, partnerName
     });
 
     setFilteredEvents(filtered);
-  }, [events, filter, activeTab]);
-
-  // Загрузка при монтировании
-  useEffect(() => {
-    loadEventHistory();
-  }, []);
+  }, [events, activeTab]);
 
   // Статистика
   const stats = {
     total: events.length,
     completed: events.filter(e => e.status === 'completed').length,
-    expired: events.filter(e => e.status === 'expired').length,
-    myEvents: events.filter(e => e.user_id === currentUserId).length,
-    partnerEvents: events.filter(e => e.user_id === partnerUserId).length
+    expired: events.filter(e => e.status === 'expired').length
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center">
-          <div className="animate-spin text-4xl mb-4">🎲</div>
-          <p className="text-gray-600 dark:text-gray-400">Загрузка истории событий...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-2xl p-6">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">❌</span>
-          <div>
-            <h3 className="font-semibold text-red-800 dark:text-red-200">Ошибка</h3>
-            <p className="text-red-700 dark:text-red-300">{error}</p>
-          </div>
-        </div>
-        <button
-          onClick={loadEventHistory}
-          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-        >
-          Попробовать снова
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -129,7 +60,7 @@ export default function EventHistory({ currentUserId, partnerUserId, partnerName
           📚 История случайных событий
         </h2>
         
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.total}</div>
             <div className="text-sm text-blue-700 dark:text-blue-300">Всего событий</div>
@@ -141,14 +72,6 @@ export default function EventHistory({ currentUserId, partnerUserId, partnerName
           <div className="bg-red-50 dark:bg-red-900/30 p-4 rounded-lg border border-red-200 dark:border-red-700">
             <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.expired}</div>
             <div className="text-sm text-red-700 dark:text-red-300">Истекло</div>
-          </div>
-          <div className="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg border border-purple-200 dark:border-purple-700">
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.myEvents}</div>
-            <div className="text-sm text-purple-700 dark:text-purple-300">Мои события</div>
-          </div>
-          <div className="bg-orange-50 dark:bg-orange-900/30 p-4 rounded-lg border border-orange-200 dark:border-orange-700">
-            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.partnerEvents}</div>
-            <div className="text-sm text-orange-700 dark:text-orange-300">Партнера</div>
           </div>
         </div>
       </div>      {/* Ф
@@ -189,18 +112,7 @@ export default function EventHistory({ currentUserId, partnerUserId, partnerName
             </button>
           </div>
 
-          {/* Фильтр по участнику */}
-          <div className="flex gap-2">
-            <select
-              value={filter.user_id || ''}
-              onChange={(e) => setFilter(prev => ({ ...prev, user_id: e.target.value || undefined }))}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Все участники</option>
-              <option value={currentUserId}>Мои события</option>
-              <option value={partnerUserId}>События {partnerName}</option>
-            </select>
-          </div>
+
         </div>
       </div>
 
@@ -259,13 +171,7 @@ export default function EventHistory({ currentUserId, partnerUserId, partnerName
                       {groupedEvents[period].map((event) => (
                         <EventCard
                           key={event.id}
-                          event={{
-                            ...event,
-                            user_name: event.user_id === currentUserId ? 'Вы' : partnerName,
-                            completed_by_name: event.completed_by === currentUserId ? 'Вы' : 
-                                             event.completed_by === partnerUserId ? partnerName : undefined
-                          }}
-                          currentUserId={currentUserId}
+                          event={event}
                           isPartner={false}
                         />
                       ))}

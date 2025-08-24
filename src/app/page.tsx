@@ -5,7 +5,8 @@ import { User, Wish } from '@/lib/db';
 import BalanceCard from '@/components/BalanceCard';
 import QuickActions from '@/components/QuickActions';
 import WishCard from '@/components/WishCard';
-import BurgerMenu from '@/components/BurgerMenu';
+import EnhancedNavigation from '@/components/EnhancedNavigation';
+import NotificationSystem from '@/components/NotificationSystem';
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
@@ -307,7 +308,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
-      <BurgerMenu currentUser={currentUser} />
+      {currentUser && (
+        <>
+          <EnhancedNavigation currentUser={currentUser} />
+          <NotificationSystem userId={currentUser.id} />
+        </>
+      )}
       
       <div className="max-w-md mx-auto p-4 space-y-6 pt-6">
         {/* Заголовок */}
