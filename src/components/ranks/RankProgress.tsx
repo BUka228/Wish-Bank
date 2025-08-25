@@ -34,8 +34,8 @@ export default function RankProgress({ userId }: RankProgressProps) {
       setLoading(true);
       
       const [progressRes, statsRes] = await Promise.all([
-        fetch('/api/ranks/progress'),
-        fetch('/api/economy/stats')
+        fetch(`/api/ranks/progress?userId=${userId}`),
+        fetch(`/api/economy/stats?userId=${userId}`)
       ]);
 
       if (progressRes.ok) {
@@ -129,13 +129,13 @@ export default function RankProgress({ userId }: RankProgressProps) {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Общий опыт:</span>
                   <span className="font-medium text-gray-800 dark:text-gray-200">
-                    {progressData.current_experience.toLocaleString()}
+                    {(progressData.current_experience || 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Минимум для ранга:</span>
                   <span className="font-medium text-gray-800 dark:text-gray-200">
-                    {progressData.current_rank.min_experience.toLocaleString()}
+                    {(progressData.current_rank?.min_experience || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -172,7 +172,7 @@ export default function RankProgress({ userId }: RankProgressProps) {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Нужно опыта:</span>
                     <span className="font-medium text-gray-800 dark:text-gray-200">
-                      {progressData.experience_to_next.toLocaleString()}
+                      {(progressData.experience_to_next || 0).toLocaleString()}
                     </span>
                   </div>
                   
@@ -181,13 +181,13 @@ export default function RankProgress({ userId }: RankProgressProps) {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">Прогресс:</span>
                       <span className="font-medium text-green-600 dark:text-green-400">
-                        {progressData.progress_percentage.toFixed(1)}%
+                        {(progressData.progress_percentage || 0).toFixed(1)}%
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                       <div 
                         className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(progressData.progress_percentage, 100)}%` }}
+                        style={{ width: `${Math.min(progressData.progress_percentage || 0, 100)}%` }}
                       />
                     </div>
                   </div>
@@ -213,13 +213,13 @@ export default function RankProgress({ userId }: RankProgressProps) {
               </div>
               <div className="space-y-1">
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {stats.total_quests_completed}
+                  {stats.total_quests_completed || 0}
                 </div>
                 <div className="text-sm text-blue-700 dark:text-blue-300">
                   Выполнено квестов
                 </div>
                 <div className="text-xs text-blue-600 dark:text-blue-400">
-                  ~{(stats.total_quests_completed * 50).toLocaleString()} опыта
+                  ~{((stats.total_quests_completed || 0) * 50).toLocaleString()} опыта
                 </div>
               </div>
             </div>
@@ -231,13 +231,13 @@ export default function RankProgress({ userId }: RankProgressProps) {
               </div>
               <div className="space-y-1">
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {stats.total_events_completed}
+                  {stats.total_events_completed || 0}
                 </div>
                 <div className="text-sm text-purple-700 dark:text-purple-300">
                   Выполнено событий
                 </div>
                 <div className="text-xs text-purple-600 dark:text-purple-400">
-                  ~{(stats.total_events_completed * 30).toLocaleString()} опыта
+                  ~{((stats.total_events_completed || 0) * 30).toLocaleString()} опыта
                 </div>
               </div>
             </div>
@@ -249,13 +249,13 @@ export default function RankProgress({ userId }: RankProgressProps) {
               </div>
               <div className="space-y-1">
                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {stats.total_wishes_gifted}
+                  {stats.total_wishes_gifted || 0}
                 </div>
                 <div className="text-sm text-green-700 dark:text-green-300">
                   Подарено желаний
                 </div>
                 <div className="text-xs text-green-600 dark:text-green-400">
-                  ~{(stats.total_wishes_gifted * 10).toLocaleString()} опыта
+                  ~{((stats.total_wishes_gifted || 0) * 10).toLocaleString()} опыта
                 </div>
               </div>
             </div>
@@ -267,7 +267,7 @@ export default function RankProgress({ userId }: RankProgressProps) {
               </div>
               <div className="space-y-1">
                 <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {stats.completion_rate.toFixed(0)}%
+                  {(stats.completion_rate || 0).toFixed(0)}%
                 </div>
                 <div className="text-sm text-yellow-700 dark:text-yellow-300">
                   Процент выполнения
