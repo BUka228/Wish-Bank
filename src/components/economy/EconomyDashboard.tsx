@@ -21,10 +21,11 @@ export default function EconomyDashboard({ userId }: EconomyDashboardProps) {
       setLoading(true);
       
       // Параллельная загрузка всех данных
+      const { ApiClient } = await import('../../lib/api-client');
       const [quotasRes, metricsRes, statsRes] = await Promise.all([
-        fetch(`/api/economy/quotas?userId=${userId}`),
-        fetch(`/api/economy/metrics?userId=${userId}`),
-        fetch(`/api/economy/stats?userId=${userId}`)
+        ApiClient.get(`/api/economy/quotas?userId=${userId}`),
+        ApiClient.get(`/api/economy/metrics?userId=${userId}`),
+        ApiClient.get(`/api/economy/stats?userId=${userId}`)
       ]);
 
       if (quotasRes.ok) {

@@ -80,7 +80,8 @@ export default function QuestsPage() {
 
   const loadQuests = async (userId: string) => {
     try {
-      const response = await fetch(`/api/quests?userId=${userId}`);
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.get(`/api/quests?userId=${userId}`);
       if (response.ok) {
         const data = await response.json();
         setQuests(data.quests || []);

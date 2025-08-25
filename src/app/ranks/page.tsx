@@ -82,7 +82,8 @@ export default function RanksPage() {
 
   const loadRanks = async () => {
     try {
-      const response = await fetch('/api/ranks');
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.get('/api/ranks');
       if (response.ok) {
         const data = await response.json();
         setRanks(data.ranks || []);
@@ -94,7 +95,8 @@ export default function RanksPage() {
 
   const loadCurrentRank = async (userId: string) => {
     try {
-      const response = await fetch(`/api/ranks/current?userId=${userId}`);
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.get(`/api/ranks/current?userId=${userId}`);
       if (response.ok) {
         const data = await response.json();
         setCurrentRank(data.rank);

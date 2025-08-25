@@ -58,9 +58,10 @@ export default function RankPrivileges({ currentUserId }: RankPrivilegesProps) {
     try {
       setLoading(true);
       
+      const { ApiClient } = await import('../../lib/api-client');
       const [currentRes, ranksRes] = await Promise.all([
-        fetch('/api/ranks/current'),
-        fetch('/api/ranks')
+        ApiClient.get('/api/ranks/current'),
+        ApiClient.get('/api/ranks')
       ]);
 
       if (currentRes.ok && ranksRes.ok) {

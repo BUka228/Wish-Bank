@@ -80,7 +80,8 @@ export default function EventsPage() {
 
   const loadCurrentEvent = async (userId: string) => {
     try {
-      const response = await fetch(`/api/events/current?userId=${userId}`);
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.get(`/api/events/current?userId=${userId}`);
       if (response.ok) {
         const data = await response.json();
         setCurrentEvent(data.event);
@@ -92,7 +93,8 @@ export default function EventsPage() {
 
   const loadEventHistory = async (userId: string) => {
     try {
-      const response = await fetch(`/api/events?userId=${userId}&status=completed`);
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.get(`/api/events?userId=${userId}&status=completed`);
       if (response.ok) {
         const data = await response.json();
         setEventHistory(data.events || []);
@@ -113,11 +115,8 @@ export default function EventsPage() {
     if (!currentUser) return;
     
     try {
-      const response = await fetch('/api/events/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id })
-      });
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.post('/api/events/generate', { userId: currentUser.id });
       
       if (response.ok) {
         await loadCurrentEvent(currentUser.id);

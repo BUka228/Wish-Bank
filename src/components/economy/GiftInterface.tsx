@@ -84,7 +84,8 @@ export default function GiftInterface({
   const loadQuotas = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/economy/quotas');
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.get('/api/economy/quotas');
       if (!response.ok) {
         throw new Error('Ошибка загрузки квот');
       }
@@ -116,13 +117,8 @@ export default function GiftInterface({
         message: preset.message
       };
 
-      const response = await fetch('/api/economy/gift', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(giftRequest),
-      });
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.post('/api/economy/gift', giftRequest);
 
       if (!response.ok) {
         throw new Error('Ошибка отправки подарка');
@@ -140,13 +136,8 @@ export default function GiftInterface({
   // Отправка кастомного подарка
   const handleCustomGift = async (giftRequest: GiftWishRequest) => {
     try {
-      const response = await fetch('/api/economy/gift', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(giftRequest),
-      });
+      const { ApiClient } = await import('../../lib/api-client');
+      const response = await ApiClient.post('/api/economy/gift', giftRequest);
 
       if (!response.ok) {
         throw new Error('Ошибка отправки подарка');
