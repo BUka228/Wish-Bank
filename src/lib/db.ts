@@ -1,4 +1,6 @@
 import { neon } from '@neondatabase/serverless';
+import { dbPerformance } from './db-pool';
+import { trackDatabaseError } from './error-tracking';
 
 // Проверяем наличие переменной окружения при импорте модуля
 if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
