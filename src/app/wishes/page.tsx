@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import { User } from '@/types/database';
 import { EnhancedWish } from '@/types/quest-economy';
 import WishTabs from '@/components/wishes/WishTabs';
+import MobileOptimizedWishTabs from '@/components/wishes/MobileOptimizedWishTabs';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
 import NotificationSystem from '@/components/NotificationSystem';
+import { useDeviceDetection } from '@/lib/mobile-detection';
+import ResponsiveLayout, { OrientationAwareHeader } from '@/components/ResponsiveLayout';
 
 export default function WishesPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -20,6 +23,9 @@ export default function WishesPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const deviceInfo = useDeviceDetection();
+  const { isMobile, isTablet, screenSize, orientation } = deviceInfo;
 
   useEffect(() => {
     initializeUser();
@@ -147,8 +153,10 @@ export default function WishesPage() {
     );
   }
 
+  const WishTabsComponent = isMobile || isTablet ? MobileOptimizedWishTabs : WishTabs;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 dark:from-gray-900 dark:via-pink-900 dark:to-purple-900">
+    <div className={`min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 dark:from-gray-900 dark:via-pink-900 dark:to-purple-900 ${isMobile ? 'pb-20' : ''} orientation-transition`}>
       {currentUser && (
         <>
           <EnhancedNavigation currentUser={currentUser} />
@@ -156,30 +164,31 @@ export default function WishesPage() {
         </>
       )}
       
-      <div className="max-w-4xl mx-auto p-4 space-y-6 pt-6">
-        {/* Header */}
-        <div className="text-center py-6">
-          <div className="mb-4">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full shadow-lg mb-4">
-              <span className="text-4xl">⭐</span>
-            </div>
+      <ResponsiveLayout className="space-y-4 sm:space-y-6">
+        {/* Header - orientation aware */}
+        <OrientationAwareHeader
+          title="Желания"
+          subtitle="Управляйте своими желаниями и создавайте общие цели"
+          icon={<span>⭐</span>}
+        />
+        
+        {/* Device info for debugging */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-center text-xs text-gray-500">
+            {screenSize} | {orientation} | {isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop'}
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent mb-2">
-            Желания
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">Управляйте своими желаниями и создавайте общие цели</p>
-        </div>
+        )}
 
-        {/* Wish Tabs */}
+        {/* Wish Tabs - responsive component selection */}
         {currentUser && (
-          <WishTabs
+          <WishTabsComponent
             currentUserId={currentUser.id}
             currentUser={currentUser}
             wishes={wishes}
             onWishUpdate={handleWishUpdate}
           />
         )}
-      </div>
+      </ResponsiveLayout>
     </div>
   );
 }

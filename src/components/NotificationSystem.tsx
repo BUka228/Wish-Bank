@@ -38,7 +38,11 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
 
   const loadNotifications = async () => {
     try {
-      const response = await fetch(`/api/notifications?userId=${userId}`);
+      const response = await fetch('/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${window.Telegram?.WebApp?.initData || ''}`
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.notifications || []);
@@ -51,7 +55,10 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
   const markAsRead = async (notificationId: string) => {
     try {
       await fetch(`/api/notifications/${notificationId}/read`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.Telegram?.WebApp?.initData || ''}`
+        }
       });
       
       setNotifications(prev => 
@@ -64,10 +71,12 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
 
   const markAllAsRead = async () => {
     try {
-      await fetch(`/api/notifications/read-all`, {
+      await fetch('/api/notifications/read-all', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.Telegram?.WebApp?.initData || ''}`
+        }
       });
       
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -157,14 +166,22 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
                   <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
                     Уведомления
                   </h2>
-                  {unreadCount > 0 && (
+                  <div className="flex items-center space-x-3">
                     <button
-                      onClick={markAllAsRead}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      onClick={() => window.location.href = '/notifications/history'}
+                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                     >
-                      Прочитать все
+                      История
                     </button>
-                  )}
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        Прочитать все
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Notifications List */}

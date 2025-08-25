@@ -1,60 +1,110 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/db';
+import { sql } from '@/lib/db-pool';
+import { validateTelegramWebAppData } from '@/lib/telegram-auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'GET') {
-    try {
-      const { userId } = req.query;
-
-      if (!userId || typeof userId !== 'string') {
-        return res.status(400).json({ error: 'User ID is required' });
-      }
-
-      // Get notifications from database
-      // For now, we'll create mock notifications based on user's current state
-      const notifications = await generateNotifications(userId);
-
-      res.status(200).json({ notifications });
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      res.status(500).json({ error: 'Failed to fetch notifications' });
+  try {
+    // Validate Telegram Web App data
+    const telegramData = req.headers.authorization?.replace('Bearer ', '');
+    if (!telegramData) {
+      return res.status(401).json({ error: 'Authorization required' });
     }
-  } else {
-    res.setHeader('Allow', ['GET']);
-    res.status(405).json({ error: 'Method not allowed' });
+
+    const user = validateTelegramWebAppData(telegramData, process.env.TELEGRAM_BOT_TOKEN || '');
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid authorization' });
+    }
+
+    if (req.method === 'GET') {
+      // Get in-app notifications and legacy notifications
+      const inAppNotifications = await getInAppNotifications(user.id);
+      const legacyNotifications = await generateLegacyNotifications(user.id);
+      
+      // Combine and sort by timestamp
+      const allNotifications = [...inAppNotifications, ...legacyNotifications]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      res.status(200).json({ notifications: allNotifications });
+    } else {
+      res.setHeader('Allow', ['GET']);
+      res.status(405).json({ error: 'Method not allowed' });
+    }
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 }
 
-async function generateNotifications(userId: string) {
+async function getInAppNotifications(userId: string) {
+  try {
+    const result = await sql`
+      SELECT 
+        id,
+        type,
+        title,
+        message,
+        data,
+        read,
+        priority,
+        created_at as timestamp,
+        action_url
+      FROM in_app_notifications 
+      WHERE user_id = ${userId}
+      AND (expires_at IS NULL OR expires_at > NOW())
+      ORDER BY created_at DESC 
+      LIMIT 50
+    `;
+
+    return result.map(notification => ({
+      id: notification.id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      icon: getNotificationIcon(notification.type),
+      timestamp: notification.timestamp,
+      read: notification.read,
+      actionUrl: notification.action_url,
+      priority: notification.priority,
+      data: notification.data
+    }));
+  } catch (error) {
+    console.error('Error getting in-app notifications:', error);
+    return [];
+  }
+}
+
+async function generateLegacyNotifications(userId: string) {
   const notifications = [];
 
   try {
     // Check for active quests assigned to user
-    const activeQuests = await db.query`
+    const activeQuests = await sql`
       SELECT * FROM quests WHERE assignee_id = ${userId} AND status = 'active' ORDER BY created_at DESC LIMIT 5
     `;
 
     for (const quest of activeQuests) {
-      const dueDate = new Date(quest.due_date);
-      const now = new Date();
-      const hoursUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (quest.due_date) {
+        const dueDate = new Date(quest.due_date);
+        const now = new Date();
+        const hoursUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-      if (hoursUntilDue <= 24 && hoursUntilDue > 0) {
-        notifications.push({
-          id: `quest-due-${quest.id}`,
-          type: 'quest',
-          title: 'Квест скоро истекает',
-          message: `"${quest.title}" истекает через ${Math.round(hoursUntilDue)} часов`,
-          icon: '⏰',
-          timestamp: new Date(),
-          read: false,
-          actionUrl: `/quests/${quest.id}`
-        });
+        if (hoursUntilDue <= 24 && hoursUntilDue > 0) {
+          notifications.push({
+            id: `quest-due-${quest.id}`,
+            type: 'quest',
+            title: 'Квест скоро истекает',
+            message: `"${quest.title}" истекает через ${Math.round(hoursUntilDue)} часов`,
+            icon: '⏰',
+            timestamp: new Date(),
+            read: false,
+            actionUrl: `/quests/${quest.id}`
+          });
+        }
       }
     }
 
     // Check for current random events
-    const currentEvent = await db.query`
+    const currentEvent = await sql`
       SELECT * FROM random_events WHERE user_id = ${userId} AND status = 'active' ORDER BY created_at DESC LIMIT 1
     `;
 
@@ -73,7 +123,7 @@ async function generateNotifications(userId: string) {
     }
 
     // Check for shared wishes pending approval
-    const pendingSharedWishes = await db.query`
+    const pendingSharedWishes = await sql`
       SELECT * FROM wishes WHERE is_shared = true AND shared_approved_by IS NULL AND author_id != ${userId} ORDER BY created_at DESC LIMIT 3
     `;
 
@@ -91,15 +141,15 @@ async function generateNotifications(userId: string) {
     }
 
     // Check for rank progression
-    const user = await db.query`SELECT * FROM users WHERE id = ${userId}`;
+    const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
     if (user.length > 0) {
       const userData = user[0];
-      const currentRank = await db.query`
+      const currentRank = await sql`
         SELECT * FROM ranks WHERE name = ${userData.rank || 'Рядовой'}
       `;
       
       if (currentRank.length > 0) {
-        const nextRank = await db.query`
+        const nextRank = await sql`
           SELECT * FROM ranks WHERE min_experience > ${userData.experience_points || 0} ORDER BY min_experience ASC LIMIT 1
         `;
         
@@ -121,12 +171,25 @@ async function generateNotifications(userId: string) {
       }
     }
 
-    // Sort by timestamp (newest first)
-    notifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
     return notifications;
   } catch (error) {
-    console.error('Error generating notifications:', error);
+    console.error('Error generating legacy notifications:', error);
     return [];
   }
+}
+
+function getNotificationIcon(type: string): string {
+  const icons: Record<string, string> = {
+    'shared_wish_created': '🌟',
+    'shared_wish_progress': '📈',
+    'shared_wish_completed': '🎉',
+    'shared_wish_reminder': '⏰',
+    'shared_wish_expired': '⏰',
+    'quest': '⚔️',
+    'event': '🎲',
+    'wish': '⭐',
+    'rank': '🏆',
+    'economy': '💰'
+  };
+  return icons[type] || '📢';
 }

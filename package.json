@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.23.12",
     "next": "14.0.0",
     "node-telegram-bot-api": "^0.64.0",
