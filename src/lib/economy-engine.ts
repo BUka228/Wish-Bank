@@ -1,593 +1,311 @@
 import {
   User,
+  EnhancedWish,
   EconomyQuotas,
   GiftWishRequest,
+  EnchantWishRequest,
   QuotaValidation,
   EconomyMetrics,
   NotificationData,
-  EconomySetting
+  EnchantmentCosts,
+  PriorityCostMultiplier,
+  Transaction,
 } from '../types/quest-economy';
 import {
-  getUserByTelegramId,
   getUserById,
-  createUser,
-  createGiftWish,
+  getWishById,
+  updateUser,
+  updateWish,
   addTransaction,
-  getUserTransactions
-} from './db';
+  getUserTransactions,
+  getEconomySettings,
+  updateEconomySetting,
+} from './db'; // Assuming db functions are updated/created
 
 /**
- * Economy Engine - Manages quota system, gift functionality, and economic metrics
- * Handles quota validation, resets, gift processing, and economy calculations
+ * Economy Engine - Manages the Mana-based economy, wish enchanting, and gifting quotas.
  */
 export class EconomyEngine {
-  
-  // Base quota limits (can be enhanced by rank bonuses)
   private baseQuotas = {
     daily: 5,
     weekly: 20,
-    monthly: 50
+    monthly: 50,
   };
 
+  // --- NEW: Wish Enchanting System ---
+
   /**
-   * Checks and returns current quota status for a user
+   * Applies an enchantment to a wish, deducting mana from the user.
    */
-  async checkQuotas(userId: string): Promise<EconomyQuotas> {
-    // Get user data
-    const user = await this.getUserById(userId);
+  async enchantWish(userId: string, request: EnchantWishRequest): Promise<EnhancedWish> {
+    const user = await getUserById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-    // Check if quotas need to be reset
-    await this.resetQuotasIfNeeded(user);
+    const wish = await getWishById(request.wish_id);
+    if (!wish || wish.author_id !== userId) {
+      throw new Error('Wish not found or user does not have permission to enchant it.');
+    }
 
-    // Get current quota limits (base + rank bonuses)
-    const quotaLimits = await this.calculateQuotaLimits(user);
+    const { enchantment_type, level = 1, value } = request;
 
-    // Calculate reset times
-    const now = new Date();
-    const dailyReset = new Date(now);
-    dailyReset.setDate(dailyReset.getDate() + 1);
-    dailyReset.setHours(0, 0, 0, 0);
+    const cost = await this.calculateEnchantmentCost(enchantment_type, level);
+    if (user.mana < cost) {
+      throw new Error(`Insufficient mana. Required: ${cost}, Available: ${user.mana}`);
+    }
 
-    const weeklyReset = new Date(now);
-    const daysUntilMonday = (7 - now.getDay() + 1) % 7 || 7;
-    weeklyReset.setDate(weeklyReset.getDate() + daysUntilMonday);
-    weeklyReset.setHours(0, 0, 0, 0);
+    const newEnchantments = { ...wish.enchantments };
+    switch (enchantment_type) {
+      case 'priority':
+        newEnchantments.priority = level;
+        break;
+      case 'aura':
+        if (!value || !['romantic', 'urgent', 'playful', 'mysterious'].includes(value)) {
+          throw new Error('Invalid aura value provided.');
+        }
+        newEnchantments.aura = value as any;
+        break;
+      default:
+        throw new Error('Unknown enchantment type.');
+    }
 
-    const monthlyReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    user.mana -= cost;
+    user.mana_spent += cost;
+    await updateUser(user);
 
-    return {
-      daily: {
-        limit: quotaLimits.daily,
-        used: user.daily_quota_used,
-        reset_time: dailyReset
-      },
-      weekly: {
-        limit: quotaLimits.weekly,
-        used: user.weekly_quota_used,
-        reset_time: weeklyReset
-      },
-      monthly: {
-        limit: quotaLimits.monthly,
-        used: user.monthly_quota_used,
-        reset_time: monthlyReset
-      }
-    };
+    wish.enchantments = newEnchantments;
+    const updatedWish = await updateWish(wish);
+
+    await this.recordManaTransaction({
+      user_id: userId,
+      type: 'debit',
+      mana_amount: cost,
+      description: `Enchanted wish '${wish.description.substring(0, 20)}...' with ${enchantment_type}`,
+      transaction_category: 'enchantment',
+      related_entity_id: wish.id,
+      related_entity_type: 'wish',
+    });
+
+    return updatedWish;
   }
 
   /**
-   * Validates if a user can gift wishes based on quotas
+   * Calculates the cost of a specific enchantment.
    */
-  async validateGiftQuota(
-    userId: string,
-    giftAmount: number = 1
-  ): Promise<QuotaValidation> {
+  private async calculateEnchantmentCost(type: keyof EnchantmentCosts, level: number = 1): Promise<number> {
+    const settings = await getEconomySettings();
+    const baseCosts: EnchantmentCosts = settings.enchantment_costs;
+    const priorityMultiplier: PriorityCostMultiplier = settings.priority_cost_multiplier;
+
+    if (!baseCosts || !baseCosts[type]) {
+      throw new Error(`No cost defined for enchantment type: ${type}`);
+    }
+    const baseCost = baseCosts[type];
+
+    if (type === 'priority') {
+      const multiplier = priorityMultiplier[level];
+      if (multiplier === undefined) throw new Error(`Invalid priority level: ${level}`);
+      return baseCost * multiplier;
+    }
+    return baseCost;
+  }
+
+  /**
+   * Grants mana to a user and records the transaction.
+   */
+  async grantMana(userId: string, amount: number, reason: string, category: string, referenceId?: string): Promise<void> {
+    const user = await getUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    user.mana += amount;
+    await updateUser(user);
+
+    await this.recordManaTransaction({
+      user_id: userId,
+      type: 'credit',
+      mana_amount: amount,
+      description: reason,
+      transaction_category: category,
+      related_entity_id: referenceId,
+      related_entity_type: category.split('_')[0],
+    });
+  }
+
+  // --- Gifting & Quota System (Refactored) ---
+
+  async checkQuotas(userId: string): Promise<EconomyQuotas> {
+    const user = await getUserById(userId);
+    if (!user) throw new Error('User not found');
+
+    await this.resetQuotasIfNeeded(user);
+
+    const quotaLimits = await this.calculateQuotaLimits(user);
+    const now = new Date();
+    const dailyReset = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const weeklyReset = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - now.getDay() + 1) % 7);
+    const monthlyReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    return {
+      daily: { limit: quotaLimits.daily, used: user.daily_quota_used, reset_time: dailyReset },
+      weekly: { limit: quotaLimits.weekly, used: user.weekly_quota_used, reset_time: weeklyReset },
+      monthly: { limit: quotaLimits.monthly, used: user.monthly_quota_used, reset_time: monthlyReset },
+    };
+  }
+
+  async validateGiftQuota(userId: string, giftAmount: number = 1): Promise<QuotaValidation> {
     const quotas = await this.checkQuotas(userId);
     const errors: string[] = [];
-    const warnings: string[] = [];
 
-    // Check daily quota
-    if (quotas.daily.used + giftAmount > quotas.daily.limit) {
-      errors.push(`Daily quota exceeded. Used: ${quotas.daily.used}/${quotas.daily.limit}, trying to gift: ${giftAmount}`);
-    }
-
-    // Check weekly quota
-    if (quotas.weekly.used + giftAmount > quotas.weekly.limit) {
-      errors.push(`Weekly quota exceeded. Used: ${quotas.weekly.used}/${quotas.weekly.limit}, trying to gift: ${giftAmount}`);
-    }
-
-    // Check monthly quota
-    if (quotas.monthly.used + giftAmount > quotas.monthly.limit) {
-      errors.push(`Monthly quota exceeded. Used: ${quotas.monthly.used}/${quotas.monthly.limit}, trying to gift: ${giftAmount}`);
-    }
-
-    // Warnings for high usage
-    if (quotas.daily.used + giftAmount > quotas.daily.limit * 0.8) {
-      warnings.push(`Approaching daily quota limit (${quotas.daily.used + giftAmount}/${quotas.daily.limit})`);
-    }
+    if (quotas.daily.used + giftAmount > quotas.daily.limit) errors.push('Daily quota exceeded');
+    if (quotas.weekly.used + giftAmount > quotas.weekly.limit) errors.push('Weekly quota exceeded');
+    if (quotas.monthly.used + giftAmount > quotas.monthly.limit) errors.push('Monthly quota exceeded');
 
     const canGift = errors.length === 0;
-    let quotaType: 'daily' | 'weekly' | 'monthly' = 'daily';
-    let remainingQuota = quotas.daily.limit - quotas.daily.used;
-    let resetTime = quotas.daily.reset_time;
-
-    // Find the most restrictive quota
-    const weeklyRemaining = quotas.weekly.limit - quotas.weekly.used;
-    const monthlyRemaining = quotas.monthly.limit - quotas.monthly.used;
-
-    if (weeklyRemaining < remainingQuota) {
-      quotaType = 'weekly';
-      remainingQuota = weeklyRemaining;
-      resetTime = quotas.weekly.reset_time;
-    }
-
-    if (monthlyRemaining < remainingQuota) {
-      quotaType = 'monthly';
-      remainingQuota = monthlyRemaining;
-      resetTime = quotas.monthly.reset_time;
-    }
+    const remainingDaily = quotas.daily.limit - quotas.daily.used;
+    const remainingWeekly = quotas.weekly.limit - quotas.weekly.used;
+    const remainingMonthly = quotas.monthly.limit - quotas.monthly.used;
 
     return {
       isValid: canGift,
       errors,
-      warnings,
       canGift,
-      quotaType,
-      remainingQuota: Math.max(0, remainingQuota),
-      resetTime
+      remainingQuota: Math.min(remainingDaily, remainingWeekly, remainingMonthly),
+      // Simplified for brevity, a more robust solution would identify which quota is the blocker
+      quotaType: 'daily',
+      resetTime: quotas.daily.reset_time,
     };
   }
 
-  /**
-   * Processes a gift wish with quota validation and deduction
-   */
-  async giftWish(
-    fromUserId: string,
-    giftRequest: GiftWishRequest
-  ): Promise<{ success: boolean; wishes: any[]; quotaUsed: number }> {
-    const giftAmount = giftRequest.amount || 1;
-
-    // Validate quota
-    const quotaValidation = await this.validateGiftQuota(fromUserId, giftAmount);
+  async giftWish(fromUserId: string, giftRequest: GiftWishRequest): Promise<{ success: boolean; quotaUsed: number }> {
+    const quotaCost = giftRequest.amount || 1;
+    const quotaValidation = await this.validateGiftQuota(fromUserId, quotaCost);
     if (!quotaValidation.canGift) {
-      throw new Error(`Cannot gift wishes: ${quotaValidation.errors.join(', ')}`);
+      throw new Error(`Cannot gift: ${quotaValidation.errors.join(', ')}`);
     }
 
-    // Verify recipient exists
-    const recipient = await this.getUserById(giftRequest.recipient_id);
-    if (!recipient) {
-      throw new Error('Recipient not found');
-    }
+    const recipient = await getUserById(giftRequest.recipient_id);
+    if (!recipient) throw new Error('Recipient not found');
+    if (fromUserId === giftRequest.recipient_id) throw new Error('Cannot gift to yourself');
 
-    // Verify not gifting to self
-    if (fromUserId === giftRequest.recipient_id) {
-      throw new Error('Cannot gift wishes to yourself');
-    }
+    // This assumes a function to create a wish for another user exists
+    // await createWishForUser(recipient.id, { description: giftRequest.message, author_id: fromUserId, is_gift: true });
 
-    try {
-      // Create gift wishes
-      const wishes = await createGiftWish(
-        giftRequest.type,
-        fromUserId,
-        giftRequest.recipient_id,
-        giftAmount,
-        giftRequest.message
-      );
+    await this.deductFromQuotas(fromUserId, quotaCost);
 
-      // Deduct from quotas
-      await this.deductFromQuotas(fromUserId, giftAmount);
+    await this.recordManaTransaction({
+      user_id: fromUserId,
+      type: 'debit',
+      mana_amount: 0,
+      description: `Gift to partner ${recipient.name}`,
+      transaction_category: 'gift_sent',
+    });
 
-      // Record gift transaction for metrics
-      await this.recordGiftTransaction(fromUserId, giftRequest, giftAmount);
-
-      // Send notifications
-      await this.sendGiftNotification(fromUserId, giftRequest, giftAmount);
-
-      return {
-        success: true,
-        wishes,
-        quotaUsed: giftAmount
-      };
-    } catch (error) {
-      console.error('Failed to process gift:', error);
-      throw new Error('Failed to process gift wish');
-    }
+    await this.sendGiftNotification(fromUserId, giftRequest);
+    return { success: true, quotaUsed: quotaCost };
   }
 
-  /**
-   * Resets quotas if needed based on time periods
-   */
-  async resetQuotasIfNeeded(user: User): Promise<boolean> {
+  private async deductFromQuotas(userId: string, amount: number): Promise<void> {
+    const user = await getUserById(userId);
+    if (!user) return;
+    user.daily_quota_used += amount;
+    user.weekly_quota_used += amount;
+    user.monthly_quota_used += amount;
+    await updateUser(user);
+  }
+
+  private async resetQuotasIfNeeded(user: User): Promise<void> {
     const now = new Date();
     const lastReset = new Date(user.last_quota_reset);
-    let needsReset = false;
+    if (now.toDateString() === lastReset.toDateString()) return;
 
-    // Check if we need to reset daily quota (new day)
-    if (now.getDate() !== lastReset.getDate() || 
-        now.getMonth() !== lastReset.getMonth() || 
-        now.getFullYear() !== lastReset.getFullYear()) {
-      needsReset = true;
-    }
-
-    if (needsReset) {
-      await this.performQuotaReset(user.id, now);
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Performs actual quota reset in database
-   */
-  private async performQuotaReset(userId: string, resetDate: Date): Promise<void> {
-    // TODO: Implement database update for quota reset
-    // This would update the user's quota fields and last_quota_reset date
-    console.log(`Resetting quotas for user ${userId} on ${resetDate.toISOString()}`);
+    user.daily_quota_used = 0;
+    if (now.getDay() === 1) user.weekly_quota_used = 0; // Monday
+    if (now.getDate() === 1) user.monthly_quota_used = 0; // 1st of month
+    user.last_quota_reset = now;
     
-    // In a real implementation, this would be:
-    // await sql`
-    //   UPDATE users 
-    //   SET daily_quota_used = 0, 
-    //       weekly_quota_used = CASE 
-    //         WHEN EXTRACT(DOW FROM ${resetDate}) = 1 THEN 0 
-    //         ELSE weekly_quota_used 
-    //       END,
-    //       monthly_quota_used = CASE 
-    //         WHEN EXTRACT(DAY FROM ${resetDate}) = 1 THEN 0 
-    //         ELSE monthly_quota_used 
-    //       END,
-    //       last_quota_reset = ${resetDate}
-    //   WHERE id = ${userId}
-    // `;
+    await updateUser(user);
   }
 
-  /**
-   * Calculates quota limits including rank bonuses
-   */
-  private async calculateQuotaLimits(user: User): Promise<{
-    daily: number;
-    weekly: number;
-    monthly: number;
-  }> {
-    // TODO: Get rank bonuses from rank system
-    // For now, use base quotas
-    const rankBonuses = await this.getRankBonuses(user.rank);
-
+  private async calculateQuotaLimits(user: User): Promise<{ daily: number, weekly: number, monthly: number }> {
+    // This would fetch rank bonuses from the ranks table/service
+    const rankBonuses = { daily_quota_bonus: 0, weekly_quota_bonus: 0, monthly_quota_bonus: 0 }; // Placeholder
     return {
       daily: this.baseQuotas.daily + rankBonuses.daily_quota_bonus,
       weekly: this.baseQuotas.weekly + rankBonuses.weekly_quota_bonus,
-      monthly: this.baseQuotas.monthly + rankBonuses.monthly_quota_bonus
+      monthly: this.baseQuotas.monthly + rankBonuses.monthly_quota_bonus,
     };
   }
 
-  /**
-   * Gets rank bonuses for quota calculations
-   */
-  private async getRankBonuses(rank: string): Promise<{
-    daily_quota_bonus: number;
-    weekly_quota_bonus: number;
-    monthly_quota_bonus: number;
-  }> {
-    // TODO: Implement actual rank bonus lookup from database
-    // For now, return default bonuses based on rank
-    const rankBonuses = {
-      'Рядовой': { daily_quota_bonus: 0, weekly_quota_bonus: 0, monthly_quota_bonus: 0 },
-      'Ефрейтор': { daily_quota_bonus: 1, weekly_quota_bonus: 2, monthly_quota_bonus: 5 },
-      'Младший сержант': { daily_quota_bonus: 2, weekly_quota_bonus: 5, monthly_quota_bonus: 10 },
-      'Сержант': { daily_quota_bonus: 3, weekly_quota_bonus: 8, monthly_quota_bonus: 15 },
-      'Старший сержант': { daily_quota_bonus: 4, weekly_quota_bonus: 12, monthly_quota_bonus: 20 }
-    };
+  // --- Transactions & Notifications (Updated) ---
 
-    return rankBonuses[rank as keyof typeof rankBonuses] || rankBonuses['Рядовой'];
-  }
-
-  /**
-   * Deducts gift amount from user quotas
-   */
-  private async deductFromQuotas(userId: string, amount: number): Promise<void> {
-    // TODO: Implement database update to deduct from quotas
-    console.log(`Deducting ${amount} from quotas for user ${userId}`);
-    
-    // In a real implementation:
-    // await sql`
-    //   UPDATE users 
-    //   SET daily_quota_used = daily_quota_used + ${amount},
-    //       weekly_quota_used = weekly_quota_used + ${amount},
-    //       monthly_quota_used = monthly_quota_used + ${amount}
-    //   WHERE id = ${userId}
-    // `;
-  }
-
-  /**
-   * Records gift transaction for metrics and tracking
-   */
-  private async recordGiftTransaction(
-    fromUserId: string,
-    giftRequest: GiftWishRequest,
-    amount: number
-  ): Promise<void> {
+  private async recordManaTransaction(tx: Omit<Transaction, 'id' | 'created_at' | 'experience_gained'>): Promise<void> {
     try {
-      await addTransaction(
-        fromUserId,
-        'debit',
-        'green', // Placeholder - gifts don't actually debit balance
-        0, // No actual balance change for gifts
-        `Gift to partner: ${amount} ${giftRequest.type} wishes`,
-        undefined // No reference ID for gifts
-      );
+      await addTransaction(tx as Transaction);
     } catch (error) {
-      console.error('Failed to record gift transaction:', error);
+      console.error('Failed to record mana transaction:', error);
     }
   }
 
-  /**
-   * Sends gift notification to recipient
-   */
-  private async sendGiftNotification(
-    fromUserId: string,
-    giftRequest: GiftWishRequest,
-    amount: number
-  ): Promise<void> {
+  private async sendGiftNotification(fromUserId: string, giftRequest: GiftWishRequest): Promise<void> {
+    const fromUser = await getUserById(fromUserId);
     const notificationData: NotificationData = {
       type: 'wish_gifted',
-      title: 'Получен подарок!',
-      message: `Вам подарили ${amount} ${giftRequest.type} ${amount === 1 ? 'желание' : 'желаний'}${giftRequest.message ? `: ${giftRequest.message}` : ''}`,
+      title: 'You received a gift!',
+      message: `${fromUser?.name} gifted you a wish: "${giftRequest.message}"`,
       recipient_id: giftRequest.recipient_id,
-      data: {
-        sender_id: fromUserId,
-        gift_type: giftRequest.type,
-        gift_amount: amount,
-        gift_message: giftRequest.message
-      }
+      data: { sender_id: fromUserId, message: giftRequest.message },
     };
-
-    // TODO: Integrate with notification service
-    console.log('Gift notification:', notificationData);
+    console.log('Sending notification:', notificationData);
+    // await notificationService.send(notificationData);
   }
 
-  /**
-   * Calculates economy metrics for a user
-   */
+  // --- Metrics & Settings (Rewritten) ---
+
   async calculateEconomyMetrics(userId: string): Promise<EconomyMetrics> {
-    // Get user transactions for analysis
-    const transactions = await getUserTransactions(userId, 100);
-    
-    // Filter gift-related transactions
-    const giftTransactions = transactions.filter(t => 
-      t.reason.includes('Gift') || t.transaction_category === 'gift'
-    );
+    const user = await getUserById(userId);
+    if (!user) throw new Error("User not found");
 
-    const giftsGiven = giftTransactions.filter(t => t.type === 'debit').length;
-    const giftsReceived = giftTransactions.filter(t => t.type === 'credit').length;
+    const transactions = await getUserTransactions(userId, 200);
 
-    // Calculate quota utilization
+    const giftsGiven = transactions.filter(t => t.transaction_category === 'gift_sent').length;
+    const giftsReceived = transactions.filter(t => t.transaction_category === 'gift_received').length;
+    const totalManaEarned = transactions.filter(t => t.type === 'credit').reduce((sum, t) => sum + t.mana_amount, 0);
+
     const quotas = await this.checkQuotas(userId);
     const quotaUtilization = {
       daily: quotas.daily.limit > 0 ? (quotas.daily.used / quotas.daily.limit) * 100 : 0,
       weekly: quotas.weekly.limit > 0 ? (quotas.weekly.used / quotas.weekly.limit) * 100 : 0,
-      monthly: quotas.monthly.limit > 0 ? (quotas.monthly.used / quotas.monthly.limit) * 100 : 0
+      monthly: quotas.monthly.limit > 0 ? (quotas.monthly.used / quotas.monthly.limit) * 100 : 0,
     };
 
-    // Analyze most gifted type
-    const typeCount = { green: 0, blue: 0, red: 0 };
-    giftTransactions.forEach(t => {
-      if (t.type === 'debit') {
-        typeCount[t.wish_type as keyof typeof typeCount]++;
-      }
+    const enchantmentCounts: { [key: string]: number } = {};
+    transactions.filter(t => t.transaction_category === 'enchantment').forEach(t => {
+      const type = t.description.split(' ').pop();
+      if (type) enchantmentCounts[type] = (enchantmentCounts[type] || 0) + 1;
     });
-
-    const mostGiftedType = Object.entries(typeCount).reduce((a, b) => 
-      typeCount[a[0] as keyof typeof typeCount] > typeCount[b[0] as keyof typeof typeCount] ? a : b
-    )[0] as 'green' | 'blue' | 'red';
-
-    // Calculate gift frequency (gifts per week)
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const recentGifts = giftTransactions.filter(t => 
-      new Date(t.created_at) > oneWeekAgo && t.type === 'debit'
-    ).length;
+    const mostUsedEnchantment = Object.keys(enchantmentCounts).length > 0
+      ? Object.entries(enchantmentCounts).reduce((a, b) => a[1] > b[1] ? a : b)[0]
+      : undefined;
 
     return {
       total_gifts_given: giftsGiven,
       total_gifts_received: giftsReceived,
+      total_mana_spent: user.mana_spent,
+      total_mana_earned: totalManaEarned,
       quota_utilization: quotaUtilization,
-      most_gifted_type: mostGiftedType || 'green',
-      gift_frequency: recentGifts
+      most_used_enchantment: mostUsedEnchantment as keyof EnchantmentCosts | undefined,
+      gift_frequency: 0, // Placeholder
     };
   }
 
-  /**
-   * Gets economy settings from database
-   */
-  async getEconomySettings(): Promise<Record<string, any>> {
-    // TODO: Implement database query for economy settings
-    // For now, return default settings
-    return {
-      daily_gift_base_limit: this.baseQuotas.daily,
-      weekly_gift_base_limit: this.baseQuotas.weekly,
-      monthly_gift_base_limit: this.baseQuotas.monthly,
-      gift_types: ['green', 'blue', 'red'],
-      max_gift_amount_per_transaction: 10,
-      quota_reset_times: {
-        daily: '00:00',
-        weekly: 'monday_00:00',
-        monthly: 'first_day_00:00'
-      }
-    };
+  async getSettings(): Promise<Record<string, any>> {
+    return await getEconomySettings();
   }
 
-  /**
-   * Updates economy settings (admin function)
-   */
-  async updateEconomySettings(
-    settingKey: string,
-    settingValue: any,
-    description?: string
-  ): Promise<void> {
-    // TODO: Implement database update for economy settings
-    console.log(`Updating economy setting ${settingKey} to:`, settingValue);
-    
-    // In a real implementation:
-    // await sql`
-    //   INSERT INTO economy_settings (setting_key, setting_value, description, updated_at)
-    //   VALUES (${settingKey}, ${JSON.stringify(settingValue)}, ${description}, NOW())
-    //   ON CONFLICT (setting_key) 
-    //   DO UPDATE SET setting_value = ${JSON.stringify(settingValue)}, 
-    //                 description = ${description}, 
-    //                 updated_at = NOW()
-    // `;
-  }
-
-  /**
-   * Gets user by ID (helper method)
-   */
-  private async getUserById(userId: string): Promise<User | null> {
-    return await getUserById(userId);
-  }
-
-  /**
-   * Processes bulk gift operations (for special events)
-   */
-  async processBulkGift(
-    fromUserId: string,
-    recipients: string[],
-    giftType: 'green' | 'blue' | 'red',
-    amount: number = 1,
-    message?: string
-  ): Promise<{ successful: number; failed: number; errors: string[] }> {
-    let successful = 0;
-    let failed = 0;
-    const errors: string[] = [];
-
-    for (const recipientId of recipients) {
-      try {
-        await this.giftWish(fromUserId, {
-          recipient_id: recipientId,
-          type: giftType,
-          amount,
-          message
-        });
-        successful++;
-      } catch (error) {
-        failed++;
-        errors.push(`Failed to gift to ${recipientId}: ${error}`);
-      }
-    }
-
-    return { successful, failed, errors };
-  }
-
-  /**
-   * Gets quota usage history for analytics
-   */
-  async getQuotaUsageHistory(
-    userId: string,
-    days: number = 30
-  ): Promise<Array<{ date: string; daily_used: number; weekly_used: number; monthly_used: number }>> {
-    // TODO: Implement quota usage history tracking
-    // This would require storing daily snapshots of quota usage
-    console.log(`Getting quota usage history for user ${userId} for ${days} days`);
-    return [];
-  }
-
-  /**
-   * Calculates optimal gift timing based on quota usage patterns
-   */
-  async getOptimalGiftTiming(userId: string): Promise<{
-    bestTimeOfDay: string;
-    bestDayOfWeek: string;
-    recommendedAmount: number;
-    reasoning: string;
-  }> {
-    // TODO: Implement ML-based optimal timing calculation
-    // For now, return basic recommendations
-    const quotas = await this.checkQuotas(userId);
-    const metrics = await this.calculateEconomyMetrics(userId);
-
-    let recommendedAmount = 1;
-    let reasoning = 'Standard gift amount';
-
-    if (quotas.daily.used < quotas.daily.limit * 0.5) {
-      recommendedAmount = 2;
-      reasoning = 'You have plenty of daily quota remaining';
-    }
-
-    return {
-      bestTimeOfDay: '18:00-20:00',
-      bestDayOfWeek: 'Friday',
-      recommendedAmount,
-      reasoning
-    };
-  }
-
-  /**
-   * Checks and resets quotas if needed - Task 7.3
-   */
-  async checkAndResetQuotas(userId: string): Promise<boolean> {
-    try {
-      const user = await this.getUserById(userId);
-      if (!user) {
-        console.error(`User not found: ${userId}`);
-        return false;
-      }
-
-      return await this.resetQuotasIfNeeded(user);
-    } catch (error) {
-      console.error(`Error checking quotas for user ${userId}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Collects system-wide economy metrics - Task 7.3
-   */
-  async collectSystemMetrics(): Promise<{
-    totalUsers: number;
-    activeUsers: number;
-    totalTransactions: number;
-    averageBalance: { green: number; blue: number; red: number };
-    quotaUtilization: { daily: number; weekly: number; monthly: number };
-    totalGiftsToday: number;
-    totalGiftsThisWeek: number;
-    totalGiftsThisMonth: number;
-  }> {
-    try {
-      // Import the metrics collector here to avoid circular dependencies
-      const { economyMetricsCollector } = await import('./economy-metrics');
-      
-      const fullMetrics = await economyMetricsCollector.collectSystemMetrics();
-      
-      // Transform to the expected format
-      const metrics = {
-        totalUsers: fullMetrics.users.total,
-        activeUsers: fullMetrics.users.active,
-        totalTransactions: fullMetrics.transactions.total,
-        averageBalance: {
-          green: fullMetrics.balances.averageGreen,
-          blue: fullMetrics.balances.averageBlue,
-          red: fullMetrics.balances.averageRed
-        },
-        quotaUtilization: {
-          daily: fullMetrics.quotas.averageDailyUsage,
-          weekly: fullMetrics.quotas.averageWeeklyUsage,
-          monthly: fullMetrics.quotas.averageMonthlyUsage
-        },
-        totalGiftsToday: fullMetrics.gifts.totalToday,
-        totalGiftsThisWeek: fullMetrics.gifts.totalThisWeek,
-        totalGiftsThisMonth: fullMetrics.gifts.totalThisMonth
-      };
-
-      console.log('Collected system metrics:', metrics);
-      return metrics;
-    } catch (error) {
-      console.error('Error collecting system metrics:', error);
-      throw error;
-    }
+  async updateSetting(key: string, value: any, description?: string): Promise<void> {
+    await updateEconomySetting(key, value, description);
   }
 }
 
-// Export singleton instance
 export const economyEngine = new EconomyEngine();

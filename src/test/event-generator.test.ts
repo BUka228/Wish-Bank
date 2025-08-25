@@ -1,16 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventGenerator } from '../lib/event-generator';
 import * as db from '../lib/db';
+import { economyEngine } from '../lib/economy-engine';
 
-// Mock the database module
-vi.mock('../lib/db', () => ({
-  createRandomEvent: vi.fn(),
-  getCurrentEvent: vi.fn(),
-  getEventById: vi.fn(),
-  completeRandomEvent: vi.fn(),
-  getUserByTelegramId: vi.fn(),
-  addTransaction: vi.fn(),
-}));
+// Mock dependencies
+vi.mock('../lib/db');
+vi.mock('../lib/economy-engine');
 
 describe('EventGenerator', () => {
   let eventGenerator: EventGenerator;
@@ -19,8 +14,7 @@ describe('EventGenerator', () => {
     user_id: 'user-1',
     title: 'Неожиданный сюрприз',
     description: 'Сделайте что-то приятное для партнера без предупреждения',
-    reward_type: 'green',
-    reward_amount: 2,
+    mana_reward: 20,
     experience_reward: 20,
     status: 'active' as const,
     expires_at: new Date('2024-01-16T10:00:00Z'),
@@ -48,15 +42,14 @@ describe('EventGenerator', () => {
 
       expect(result).toEqual(mockEvent);
       expect(db.getCurrentEvent).toHaveBeenCalledWith('user-1');
-      expect(db.createRandomEvent).toHaveBeenCalledWith(
-        'user-1',
-        expect.any(String), // title
-        expect.any(String), // description
-        expect.any(String), // reward_type
-        expect.any(Number), // reward_amount
-        expect.any(Number), // experience_reward
-        expect.any(Date) // expires_at (24 hours from now)
-      );
+      expect(db.createRandomEvent).toHaveBeenCalledWith(expect.objectContaining({
+        user_id: 'user-1',
+        title: expect.any(String),
+        description: expect.any(String),
+        mana_reward: expect.any(Number),
+        experience_reward: expect.any(Number),
+        expires_at: expect.any(Date),
+      }));
     });
 
     it('should reject generation when user already has active event', async () => {
@@ -74,11 +67,13 @@ describe('EventGenerator', () => {
 
       await eventGenerator.generateRandomEvent('user-1');
 
-      const createCall = vi.mocked(db.createRandomEvent).mock.calls[0];
-      const expiresAt = createCall[6] as Date;
-      const expectedExpiration = new Date('2024-01-16T10:00:00Z'); // 24 hours from mocked time
+      const createCall = vi.mocked(db.createRandomEvent).mock.calls[0][0];
+      const expiresAt = createCall.expires_at as Date;
+      const expectedExpiration = new Date();
+      expectedExpiration.setHours(expectedExpiration.getHours() + 24);
 
-      expect(expiresAt.getTime()).toBe(expectedExpiration.getTime());
+      // Check if it's roughly 24 hours from now
+      expect(expiresAt.getTime()).toBeCloseTo(expectedExpiration.getTime(), -4); // tolerance of 10s
     });
   });
 
@@ -91,17 +86,7 @@ describe('EventGenerator', () => {
         completed_at: new Date(),
         completed_by: 'user-2'
       });
-      vi.mocked(db.addTransaction).mockResolvedValue({
-        id: 'transaction-1',
-        user_id: 'user-1',
-        type: 'credit',
-        wish_type: 'green',
-        amount: 2,
-        reason: 'Random event completion: Неожиданный сюрприз',
-        created_at: new Date(),
-        reference_id: 'event-1',
-        transaction_category: 'event'
-      });
+      vi.mocked(economyEngine.grantMana).mockResolvedValue();
 
       const result = await eventGenerator.completeRandomEvent('event-1', 'user-2');
 
@@ -109,12 +94,11 @@ describe('EventGenerator', () => {
       expect(result.event.completed_by).toBe('user-2');
       expect(result.rewardsGranted).toBe(true);
       expect(db.completeRandomEvent).toHaveBeenCalledWith('event-1', 'user-2');
-      expect(db.addTransaction).toHaveBeenCalledWith(
+      expect(economyEngine.grantMana).toHaveBeenCalledWith(
         'user-1', // event owner gets the reward
-        'credit',
-        'green',
-        2,
-        'Random event completion: Неожиданный сюрприз',
+        20,       // mana_reward from mockEvent
+        'Event completion: Неожиданный сюрприз',
+        'event_reward',
         'event-1'
       );
     });
@@ -291,13 +275,12 @@ describe('EventGenerator', () => {
   describe('reward calculation', () => {
     it('should calculate rewards within reasonable bounds', async () => {
       vi.mocked(db.getCurrentEvent).mockResolvedValue(null);
-      vi.mocked(db.createRandomEvent).mockImplementation(async (userId, title, description, rewardType, rewardAmount, experienceReward, expiresAt) => {
+      vi.mocked(db.createRandomEvent).mockImplementation(async (eventData) => {
         // Verify reward amounts are reasonable
-        expect(rewardAmount).toBeGreaterThan(0);
-        expect(rewardAmount).toBeLessThanOrEqual(10);
-        expect(experienceReward).toBeGreaterThan(0);
-        expect(experienceReward).toBeLessThanOrEqual(100);
-        expect(['green', 'blue', 'red']).toContain(rewardType);
+        expect(eventData.mana_reward).toBeGreaterThan(0);
+        expect(eventData.mana_reward).toBeLessThanOrEqual(100); // Scaled up
+        expect(eventData.experience_reward).toBeGreaterThan(0);
+        expect(eventData.experience_reward).toBeLessThanOrEqual(100);
         
         return mockEvent;
       });

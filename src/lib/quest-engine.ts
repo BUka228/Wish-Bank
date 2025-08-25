@@ -6,6 +6,7 @@ import {
   Rank,
   NotificationData 
 } from '../types/quest-economy';
+import { economyEngine } from './economy-engine'; // Import the new economy engine
 import { 
   createQuest as dbCreateQuest,
   getQuestById,
@@ -15,8 +16,7 @@ import {
   getQuestsByUser,
   getExpiredQuests,
   markQuestsAsExpired,
-  getUserByTelegramId,
-  addTransaction
+  getUserByTelegramId
 } from './db';
 
 /**
@@ -40,24 +40,17 @@ export class QuestEngine {
     }
 
     // Calculate rewards based on difficulty
-    const { rewardAmount, experienceReward } = this.calculateQuestRewards(
-      questData.difficulty || 'easy',
-      questData.reward_type || 'green'
+    const { manaReward, experienceReward } = this.calculateQuestRewards(
+      questData.difficulty || 'easy'
     );
 
     // Create the quest
-    const quest = await dbCreateQuest(
-      questData.title,
-      questData.description,
-      authorId,
-      questData.assignee_id,
-      questData.category || 'general',
-      questData.difficulty || 'easy',
-      questData.reward_type || 'green',
-      questData.reward_amount || rewardAmount,
-      questData.experience_reward || experienceReward,
-      questData.due_date
-    );
+    const quest = await dbCreateQuest({
+      ...questData,
+      author_id: authorId,
+      mana_reward: questData.mana_reward || manaReward,
+      experience_reward: questData.experience_reward || experienceReward,
+    });
 
     // Send notification to assignee
     await this.sendQuestNotification(quest, 'quest_assigned');
@@ -252,18 +245,13 @@ export class QuestEngine {
     }
 
     // Recalculate rewards if difficulty or reward type changed
-    if (updates.difficulty || updates.reward_type) {
-      const { rewardAmount, experienceReward } = this.calculateQuestRewards(
-        updates.difficulty || quest.difficulty,
-        updates.reward_type || quest.reward_type
+    if (updates.difficulty && updates.difficulty !== quest.difficulty) {
+      const { manaReward, experienceReward } = this.calculateQuestRewards(
+        updates.difficulty
       );
       
-      if (!updates.reward_amount) {
-        updates.reward_amount = rewardAmount;
-      }
-      if (!updates.experience_reward) {
-        updates.experience_reward = experienceReward;
-      }
+      updates.mana_reward = updates.mana_reward || manaReward;
+      updates.experience_reward = updates.experience_reward || experienceReward;
     }
 
     return await updateQuest(questId, updates);
@@ -273,30 +261,20 @@ export class QuestEngine {
    * Calculates quest rewards based on difficulty and type
    */
   private calculateQuestRewards(
-    difficulty: 'easy' | 'medium' | 'hard' | 'epic',
-    rewardType: string
-  ): { rewardAmount: number; experienceReward: number } {
-    const difficultyMultipliers = {
-      easy: { reward: 1, experience: 10 },
-      medium: { reward: 2, experience: 25 },
-      hard: { reward: 3, experience: 50 },
-      epic: { reward: 5, experience: 100 }
+    difficulty: 'easy' | 'medium' | 'hard' | 'epic'
+  ): { manaReward: number; experienceReward: number } {
+    const difficultyRewards = {
+      easy: { mana: 15, experience: 10 },
+      medium: { mana: 30, experience: 25 },
+      hard: { mana: 75, experience: 50 },
+      epic: { mana: 200, experience: 100 }
     };
 
-    const multiplier = difficultyMultipliers[difficulty];
-    
-    // Base reward amount varies by type
-    const baseRewards = {
-      green: 1,
-      blue: 1,
-      red: 1
-    };
-
-    const baseReward = baseRewards[rewardType as keyof typeof baseRewards] || 1;
+    const rewards = difficultyRewards[difficulty];
 
     return {
-      rewardAmount: baseReward * multiplier.reward,
-      experienceReward: multiplier.experience
+      manaReward: rewards.mana,
+      experienceReward: rewards.experience
     };
   }
 
@@ -305,13 +283,12 @@ export class QuestEngine {
    */
   private async grantQuestRewards(quest: Quest): Promise<boolean> {
     try {
-      // Grant wish balance reward
-      await addTransaction(
+      // Grant mana reward using the new economy engine
+      await economyEngine.grantMana(
         quest.assignee_id,
-        'credit',
-        quest.reward_type as 'green' | 'blue' | 'red',
-        quest.reward_amount,
-        `Quest completion reward: ${quest.title}`,
+        quest.mana_reward,
+        `Quest completion: ${quest.title}`,
+        'quest_reward',
         quest.id
       );
 
@@ -319,6 +296,7 @@ export class QuestEngine {
       if (quest.experience_reward > 0) {
         // This would be handled by the RankCalculator in a full implementation
         console.log(`Granting ${quest.experience_reward} experience to user ${quest.assignee_id}`);
+        // await rankEngine.addExperience(quest.assignee_id, quest.experience_reward);
       }
 
       return true;
@@ -366,8 +344,7 @@ export class QuestEngine {
         reference_id: quest.id,
         quest_title: quest.title,
         quest_difficulty: quest.difficulty,
-        reward_amount: quest.reward_amount,
-        reward_type: quest.reward_type
+        mana_reward: quest.mana_reward,
       }
     };
 
@@ -396,9 +373,9 @@ export class QuestEngine {
   ): string {
     switch (type) {
       case 'quest_assigned':
-        return `Вам назначен новый квест: "${quest.title}". Награда: ${quest.reward_amount} ${quest.reward_type}`;
+        return `Вам назначен новый квест: "${quest.title}". Награда: ${quest.mana_reward} mana`;
       case 'quest_completed':
-        return `Квест "${quest.title}" был отмечен как выполненный. Награда начислена!`;
+        return `Квест "${quest.title}" был отмечен как выполненный. Награда ${quest.mana_reward} mana начислена!`;
       case 'quest_expired':
         return `Квест "${quest.title}" просрочен и был автоматически закрыт.`;
       default:

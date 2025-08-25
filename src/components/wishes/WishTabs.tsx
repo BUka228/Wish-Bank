@@ -42,8 +42,8 @@ export default function WishTabs({ currentUserId, wishes, onWishUpdate }: WishTa
     if (filter.category) {
       filtered = filtered.filter(w => w.category === filter.category);
     }
-    if (filter.type) {
-      filtered = filtered.filter(w => w.type === filter.type);
+    if (filter.has_enchantment) {
+      filtered = filtered.filter(w => w.enchantments && w.enchantments[filter.has_enchantment!]);
     }
     if (filter.is_shared !== undefined) {
       filtered = filtered.filter(w => w.is_shared === filter.is_shared);
@@ -54,15 +54,16 @@ export default function WishTabs({ currentUserId, wishes, onWishUpdate }: WishTa
     if (filter.is_historical !== undefined) {
       filtered = filtered.filter(w => w.is_historical === filter.is_historical);
     }
-    if (filter.priority) {
-      filtered = filtered.filter(w => w.priority === filter.priority);
-    }
 
     // Sort: active first, then by priority and date
     filtered.sort((a, b) => {
       if (a.status === 'active' && b.status !== 'active') return -1;
       if (a.status !== 'active' && b.status === 'active') return 1;
-      if (a.priority !== b.priority) return b.priority - a.priority;
+
+      const priorityA = a.enchantments?.priority || 0;
+      const priorityB = b.enchantments?.priority || 0;
+      if (priorityA !== priorityB) return priorityB - priorityA;
+
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 

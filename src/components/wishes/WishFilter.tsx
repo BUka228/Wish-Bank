@@ -1,6 +1,7 @@
 'use client';
 
 import { WishFilter as WishFilterType } from '@/types/quest-economy';
+import { SparklesIcon, StarIcon } from '@heroicons/react/24/solid';
 
 interface WishFilterProps {
   filter: WishFilterType;
@@ -16,18 +17,10 @@ const statusOptions = [
   { value: 'cancelled', label: 'Отмененные' }
 ];
 
-const typeOptions = [
-  { value: '', label: 'Все типы' },
-  { value: 'green', label: '💚 Зеленые' },
-  { value: 'blue', label: '💙 Синие' },
-  { value: 'red', label: '❤️ Красные' }
-];
-
-const priorityOptions = [
-  { value: '', label: 'Любой приоритет' },
-  { value: '1', label: '⭐ Низкий' },
-  { value: '2', label: '⭐⭐ Средний' },
-  { value: '3', label: '⭐⭐⭐ Высокий' }
+const enchantmentOptions = [
+    { value: '', label: 'Все усиления' },
+    { value: 'priority', label: '⭐ С приоритетом' },
+    { value: 'aura', label: '✨ С аурой' },
 ];
 
 const defaultCategories = [
@@ -76,7 +69,7 @@ export default function WishFilter({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Статус */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -88,24 +81,6 @@ export default function WishFilter({
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {statusOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Тип */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Тип желания
-          </label>
-          <select
-            value={filter.type || ''}
-            onChange={(e) => updateFilter('type', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {typeOptions.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -132,17 +107,17 @@ export default function WishFilter({
           </select>
         </div>
 
-        {/* Приоритет */}
+        {/* Усиления */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Приоритет
+            Усиления
           </label>
           <select
-            value={filter.priority?.toString() || ''}
-            onChange={(e) => updateFilter('priority', e.target.value ? parseInt(e.target.value) : undefined)}
+            value={filter.has_enchantment || ''}
+            onChange={(e) => updateFilter('has_enchantment', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            {priorityOptions.map(option => (
+            {enchantmentOptions.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -151,7 +126,6 @@ export default function WishFilter({
         </div>
       </div>
 
-      {/* Дополнительные фильтры для общих желаний */}
       {showSharedFilters && (
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Дополнительные фильтры:</p>
@@ -177,45 +151,6 @@ export default function WishFilter({
           </div>
         </div>
       )}
-
-      {/* Быстрые фильтры */}
-      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Быстрые фильтры:</p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => onFilterChange({ status: 'active' })}
-            className="px-3 py-1 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
-          >
-            🟢 Активные
-          </button>
-          <button
-            onClick={() => onFilterChange({ priority: 3 })}
-            className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-          >
-            ⭐⭐⭐ Высокий приоритет
-          </button>
-          <button
-            onClick={() => onFilterChange({ type: 'red' })}
-            className="px-3 py-1 text-sm bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors"
-          >
-            ❤️ Красные
-          </button>
-          <button
-            onClick={() => onFilterChange({ category: 'Романтика' })}
-            className="px-3 py-1 text-sm bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-          >
-            💕 Романтика
-          </button>
-          {showSharedFilters && (
-            <button
-              onClick={() => onFilterChange({ is_gift: true })}
-              className="px-3 py-1 text-sm bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors"
-            >
-              🎁 Подарки
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

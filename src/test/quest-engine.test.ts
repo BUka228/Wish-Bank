@@ -1,20 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { QuestEngine } from '../lib/quest-engine';
 import * as db from '../lib/db';
+import { economyEngine } from '../lib/economy-engine';
 
-// Mock the database module
-vi.mock('../lib/db', () => ({
-  createQuest: vi.fn(),
-  getQuestById: vi.fn(),
-  updateQuest: vi.fn(),
-  completeQuest: vi.fn(),
-  cancelQuest: vi.fn(),
-  getQuestsByUser: vi.fn(),
-  getExpiredQuests: vi.fn(),
-  markQuestsAsExpired: vi.fn(),
-  getUserByTelegramId: vi.fn(),
-  addTransaction: vi.fn(),
-}));
+// Mock dependencies
+vi.mock('../lib/db');
+vi.mock('../lib/economy-engine');
 
 describe('QuestEngine', () => {
   let questEngine: QuestEngine;
@@ -26,8 +17,7 @@ describe('QuestEngine', () => {
     assignee_id: 'user-2',
     category: 'general',
     difficulty: 'easy' as const,
-    reward_type: 'green',
-    reward_amount: 1,
+    mana_reward: 15,
     experience_reward: 10,
     status: 'active' as const,
     due_date: new Date('2024-01-20T10:00:00Z'),
@@ -53,7 +43,6 @@ describe('QuestEngine', () => {
         assignee_id: 'user-2',
         category: 'general',
         difficulty: 'easy' as const,
-        reward_type: 'green',
         due_date: new Date('2024-01-20T10:00:00Z')
       };
 
@@ -64,18 +53,12 @@ describe('QuestEngine', () => {
 
       expect(result.quest).toEqual(mockQuest);
       expect(result.validation.isValid).toBe(true);
-      expect(db.createQuest).toHaveBeenCalledWith(
-        questData.title,
-        questData.description,
-        'user-1',
-        questData.assignee_id,
-        questData.category,
-        questData.difficulty,
-        questData.reward_type,
-        1, // calculated reward amount
-        10, // calculated experience reward
-        questData.due_date
-      );
+      expect(db.createQuest).toHaveBeenCalledWith(expect.objectContaining({
+        title: questData.title,
+        author_id: 'user-1',
+        mana_reward: 15, // Calculated default for easy
+        experience_reward: 10, // Calculated default for easy
+      }));
     });
 
     it('should reject quest creation with invalid title', async () => {
@@ -138,31 +121,23 @@ describe('QuestEngine', () => {
         description: 'A medium difficulty quest',
         assignee_id: 'user-2',
         difficulty: 'medium' as const,
-        reward_type: 'blue'
       };
 
       vi.mocked(db.getQuestsByUser).mockResolvedValue([]);
       vi.mocked(db.createQuest).mockResolvedValue({
         ...mockQuest,
         difficulty: 'medium',
-        reward_amount: 2,
+        mana_reward: 30,
         experience_reward: 25
       });
 
       const result = await questEngine.createQuest('user-1', questData);
 
-      expect(db.createQuest).toHaveBeenCalledWith(
-        questData.title,
-        questData.description,
-        'user-1',
-        questData.assignee_id,
-        'general', // default category
-        questData.difficulty,
-        questData.reward_type,
-        2, // medium difficulty multiplier (2x)
-        25, // medium difficulty experience (25)
-        undefined
-      );
+      expect(db.createQuest).toHaveBeenCalledWith(expect.objectContaining({
+        difficulty: 'medium',
+        mana_reward: 30, // Calculated default for medium
+        experience_reward: 25, // Calculated default for medium
+      }));
     });
   });
 
@@ -174,29 +149,18 @@ describe('QuestEngine', () => {
         status: 'completed',
         completed_at: new Date()
       });
-      vi.mocked(db.addTransaction).mockResolvedValue({
-        id: 'transaction-1',
-        user_id: 'user-2',
-        type: 'credit',
-        wish_type: 'green',
-        amount: 1,
-        reason: 'Quest completion reward: Test Quest',
-        created_at: new Date(),
-        reference_id: 'quest-1',
-        transaction_category: 'quest'
-      });
+      vi.mocked(economyEngine.grantMana).mockResolvedValue();
 
       const result = await questEngine.completeQuest('quest-1', 'user-1');
 
       expect(result.quest.status).toBe('completed');
       expect(result.rewardsGranted).toBe(true);
       expect(db.completeQuest).toHaveBeenCalledWith('quest-1', 'user-1');
-      expect(db.addTransaction).toHaveBeenCalledWith(
+      expect(economyEngine.grantMana).toHaveBeenCalledWith(
         'user-2', // assignee gets the reward
-        'credit',
-        'green',
-        1,
-        'Quest completion reward: Test Quest',
+        15,       // mana_reward from mockQuest
+        'Quest completion: Test Quest',
+        'quest_reward',
         'quest-1'
       );
     });

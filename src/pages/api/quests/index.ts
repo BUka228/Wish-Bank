@@ -56,15 +56,14 @@ async function handleCreateQuest(req: NextApiRequest, res: NextApiResponse, user
     assignee_id, 
     category, 
     difficulty, 
-    reward_type, 
-    reward_amount,
+    mana_reward,
     experience_reward,
     due_date 
   } = req.body;
 
   if (!title || !description || !assignee_id) {
     return res.status(400).json({ 
-      error: 'Missing required fields: title, description, assignee_id' 
+      message: 'Missing required fields: title, description, assignee_id'
     });
   }
 
@@ -74,13 +73,15 @@ async function handleCreateQuest(req: NextApiRequest, res: NextApiResponse, user
     assignee_id,
     category,
     difficulty: difficulty as 'easy' | 'medium' | 'hard' | 'epic',
-    reward_type,
-    reward_amount,
+    mana_reward,
     experience_reward,
     due_date: due_date ? new Date(due_date) : undefined
   };
 
-  const result = await questEngine.createQuest(user.id, questData);
-  
-  return res.status(201).json(result);
+  try {
+    const result = await questEngine.createQuest(user.id, questData);
+    return res.status(201).json(result);
+  } catch (error: any) {
+    return res.status(400).json({ message: error.message });
+  }
 }

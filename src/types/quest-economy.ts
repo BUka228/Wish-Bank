@@ -1,14 +1,38 @@
 // Enhanced Database Models and Interfaces for Quest Economy System
 
+// --- NEW Economy System Interfaces ---
+
+export interface Enchantments {
+  priority?: number;
+  aura?: 'romantic' | 'urgent' | 'playful' | 'mysterious';
+  is_linked?: boolean;
+  linked_wish_id?: string;
+  is_recurring?: boolean;
+  recurrence_interval?: 'daily' | 'weekly' | 'monthly';
+}
+
+export interface EnchantmentCosts {
+  priority: number;
+  aura: number;
+  linked_wish: number;
+  recurring: number;
+}
+
+export interface PriorityCostMultiplier {
+  [level: number]: number;
+}
+
+
+// --- Updated Core Models ---
+
 // Base interfaces (extending existing ones)
 export interface User {
   id: string;
   telegram_id: string;
   name: string;
   username?: string;
-  green_balance: number;
-  blue_balance: number;
-  red_balance: number;
+  mana: number;
+  mana_spent: number;
   rank: string;
   experience_points: number;
   daily_quota_used: number;
@@ -27,8 +51,7 @@ export interface Quest {
   assignee_id: string;
   category: string;
   difficulty: 'easy' | 'medium' | 'hard' | 'epic';
-  reward_type: string;
-  reward_amount: number;
+  mana_reward: number;
   experience_reward: number;
   status: 'active' | 'completed' | 'expired' | 'cancelled';
   due_date?: Date;
@@ -42,8 +65,7 @@ export interface RandomEvent {
   user_id: string;
   title: string;
   description: string;
-  reward_type: string;
-  reward_amount: number;
+  mana_reward: number;
   experience_reward: number;
   status: 'active' | 'completed' | 'expired';
   expires_at: Date;
@@ -55,7 +77,6 @@ export interface RandomEvent {
 
 export interface EnhancedWish {
   id: string;
-  type: 'green' | 'blue' | 'red';
   description: string;
   author_id: string;
   assignee_id?: string;
@@ -65,7 +86,7 @@ export interface EnhancedWish {
   is_gift: boolean;
   is_historical: boolean;
   shared_approved_by?: string;
-  priority: number;
+  enchantments: Enchantments;
   created_at: Date;
   completed_at?: Date;
   metadata?: Record<string, any>;
@@ -135,11 +156,13 @@ export interface Transaction {
   id: string;
   user_id: string;
   type: 'credit' | 'debit';
-  wish_type: 'green' | 'blue' | 'red';
-  amount: number;
-  reason: string;
+  mana_amount: number;
+  amount: number; // Can be used for non-mana transactions if any, or deprecated.
+  description: string;
   reference_id?: string;
   transaction_category: string;
+  related_entity_id?: string;
+  related_entity_type?: string;
   experience_gained: number;
   created_at: Date;
   metadata?: Record<string, any>;
@@ -152,8 +175,7 @@ export interface CreateQuestRequest {
   assignee_id: string;
   category?: string;
   difficulty?: 'easy' | 'medium' | 'hard' | 'epic';
-  reward_type?: string;
-  reward_amount?: number;
+  mana_reward?: number;
   experience_reward?: number;
   due_date?: Date;
 }
@@ -161,26 +183,29 @@ export interface CreateQuestRequest {
 export interface CreateRandomEventRequest {
   title: string;
   description: string;
-  reward_type?: string;
-  reward_amount?: number;
+  mana_reward?: number;
   experience_reward?: number;
   expires_at: Date;
 }
 
 export interface CreateSharedWishRequest {
-  type: 'green' | 'blue' | 'red';
   description: string;
   category?: string;
-  priority?: number;
   is_historical?: boolean;
   created_at?: Date;
 }
 
 export interface GiftWishRequest {
   recipient_id: string;
-  type: 'green' | 'blue' | 'red';
-  amount?: number;
+  amount?: number; // Quota cost
   message?: string;
+}
+
+export interface EnchantWishRequest {
+  wish_id: string;
+  enchantment_type: keyof EnchantmentCosts;
+  level?: number; // For enchantments like priority
+  value?: string; // For enchantments like aura
 }
 
 // Filter and query interfaces
@@ -197,11 +222,10 @@ export interface QuestFilter {
 export interface WishFilter {
   status?: 'active' | 'completed' | 'cancelled';
   category?: string;
-  type?: 'green' | 'blue' | 'red';
   is_shared?: boolean;
   is_gift?: boolean;
   is_historical?: boolean;
-  priority?: number;
+  has_enchantment?: keyof Enchantments;
 }
 
 export interface EventFilter {
@@ -228,12 +252,14 @@ export interface UserStats {
 export interface EconomyMetrics {
   total_gifts_given: number;
   total_gifts_received: number;
+  total_mana_spent: number;
+  total_mana_earned: number;
   quota_utilization: {
     daily: number;
     weekly: number;
     monthly: number;
   };
-  most_gifted_type: 'green' | 'blue' | 'red';
+  most_used_enchantment?: keyof EnchantmentCosts;
   gift_frequency: number;
 }
 

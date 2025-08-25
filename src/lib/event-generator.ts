@@ -4,13 +4,13 @@ import {
   User,
   NotificationData
 } from '../types/quest-economy';
+import { economyEngine } from './economy-engine'; // Import the new economy engine
 import {
   createRandomEvent as dbCreateRandomEvent,
   getCurrentEvent,
   getEventById,
   completeRandomEvent as dbCompleteRandomEvent,
-  getUserByTelegramId,
-  addTransaction
+  getUserByTelegramId
 } from './db';
 
 /**
@@ -121,7 +121,7 @@ export class EventGenerator {
     const eventTemplate = this.selectRandomEventTemplate(userId);
     
     // Calculate rewards based on user activity and preferences
-    const { rewardAmount, experienceReward, rewardType } = await this.calculateEventRewards(
+    const { manaReward, experienceReward } = await this.calculateEventRewards(
       userId,
       eventTemplate
     );
@@ -131,15 +131,14 @@ export class EventGenerator {
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     // Create the event
-    const event = await dbCreateRandomEvent(
-      userId,
-      eventTemplate.title,
-      eventTemplate.description,
-      rewardType,
-      rewardAmount,
-      experienceReward,
-      expiresAt
-    );
+    const event = await dbCreateRandomEvent({
+      user_id: userId,
+      title: eventTemplate.title,
+      description: eventTemplate.description,
+      mana_reward: manaReward,
+      experience_reward: experienceReward,
+      expires_at: expiresAt,
+    });
 
     // Send notification to user
     await this.sendEventNotification(event, 'event_available');
@@ -261,7 +260,7 @@ export class EventGenerator {
     const eventTemplate = this.selectRandomEventTemplate(userId);
     
     // Calculate rewards based on user activity and preferences
-    const { rewardAmount, experienceReward, rewardType } = await this.calculateEventRewards(
+    const { manaReward, experienceReward } = await this.calculateEventRewards(
       userId,
       eventTemplate
     );
@@ -271,15 +270,14 @@ export class EventGenerator {
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     // Create the event directly, bypassing the existing event check
-    const event = await dbCreateRandomEvent(
-      userId,
-      eventTemplate.title,
-      eventTemplate.description,
-      rewardType,
-      rewardAmount,
-      experienceReward,
-      expiresAt
-    );
+    const event = await dbCreateRandomEvent({
+      user_id: userId,
+      title: eventTemplate.title,
+      description: eventTemplate.description,
+      mana_reward: manaReward,
+      experience_reward: experienceReward,
+      expires_at: expiresAt,
+    });
 
     // Send notification to user
     await this.sendEventNotification(event, 'event_available');
@@ -303,15 +301,11 @@ export class EventGenerator {
   private async calculateEventRewards(
     userId: string,
     eventTemplate: typeof this.eventPool[0]
-  ): Promise<{ rewardAmount: number; experienceReward: number; rewardType: string }> {
+  ): Promise<{ manaReward: number; experienceReward: number }> {
     // Base rewards from template
-    let rewardAmount = eventTemplate.baseReward;
+    let manaReward = eventTemplate.baseReward * 10; // Scale base reward to mana
     let experienceReward = eventTemplate.baseExperience;
     
-    // Default reward type (could be randomized or based on user preferences)
-    const rewardTypes = ['green', 'blue', 'red'];
-    const rewardType = rewardTypes[Math.floor(Math.random() * rewardTypes.length)];
-
     // TODO: Apply user-specific multipliers based on:
     // - User rank/level
     // - Recent activity
@@ -320,10 +314,10 @@ export class EventGenerator {
 
     // For now, add some randomization
     const randomMultiplier = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-    rewardAmount = Math.max(1, Math.round(rewardAmount * randomMultiplier));
+    manaReward = Math.max(5, Math.round(manaReward * randomMultiplier));
     experienceReward = Math.round(experienceReward * randomMultiplier);
 
-    return { rewardAmount, experienceReward, rewardType };
+    return { manaReward, experienceReward };
   }
 
   /**
@@ -331,13 +325,12 @@ export class EventGenerator {
    */
   private async grantEventRewards(event: RandomEvent): Promise<boolean> {
     try {
-      // Grant wish balance reward
-      await addTransaction(
+      // Grant mana reward using the new economy engine
+      await economyEngine.grantMana(
         event.user_id,
-        'credit',
-        event.reward_type as 'green' | 'blue' | 'red',
-        event.reward_amount,
-        `Random event completion: ${event.title}`,
+        event.mana_reward,
+        `Event completion: ${event.title}`,
+        'event_reward',
         event.id
       );
 
@@ -345,6 +338,7 @@ export class EventGenerator {
       if (event.experience_reward > 0) {
         // This would be handled by the RankCalculator in a full implementation
         console.log(`Granting ${event.experience_reward} experience to user ${event.user_id}`);
+        // await rankEngine.addExperience(event.user_id, event.experience_reward);
       }
 
       return true;
@@ -401,8 +395,7 @@ export class EventGenerator {
         sender_id: event.completed_by,
         reference_id: event.id,
         event_title: event.title,
-        reward_amount: event.reward_amount,
-        reward_type: event.reward_type,
+        mana_reward: event.mana_reward,
         experience_reward: event.experience_reward
       }
     };
@@ -432,9 +425,9 @@ export class EventGenerator {
   ): string {
     switch (type) {
       case 'event_available':
-        return `У вас новое событие: "${event.title}". Награда: ${event.reward_amount} ${event.reward_type}. Истекает через 24 часа.`;
+        return `У вас новое событие: "${event.title}". Награда: ${event.mana_reward} mana. Истекает через 24 часа.`;
       case 'event_completed':
-        return `Событие "${event.title}" выполнено! Награда начислена: ${event.reward_amount} ${event.reward_type} + ${event.experience_reward} опыта.`;
+        return `Событие "${event.title}" выполнено! Награда начислена: ${event.mana_reward} mana + ${event.experience_reward} опыта.`;
       case 'event_expired':
         return `Событие "${event.title}" истекло. Новое событие будет сгенерировано в ближайшее время.`;
       default:
