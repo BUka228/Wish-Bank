@@ -247,7 +247,7 @@ export default function EnhancementInterface({
               Ваш баланс:
             </span>
             <span className="text-lg font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              {formatManaAmount(user.mana_balance)}
+              {formatManaAmount(user.mana_balance || 0)}
             </span>
           </div>
         </div>
@@ -318,9 +318,9 @@ export default function EnhancementInterface({
           {costs.nextPriorityLevel && currentLevels.priority < 5 ? (
             <button
               onClick={applyPriorityEnhancement}
-              disabled={loading || user.mana_balance < costs.nextPriorityLevel}
+              disabled={loading || (user.mana_balance || 0) < costs.nextPriorityLevel}
               className={`w-full p-4 rounded-xl font-medium transition-all duration-200 ${
-                loading || user.mana_balance < costs.nextPriorityLevel
+                loading || (user.mana_balance || 0) < costs.nextPriorityLevel
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 shadow-lg hover:shadow-xl'
               }`}
@@ -408,9 +408,9 @@ export default function EnhancementInterface({
                   <button
                     key={auraType}
                     onClick={() => applyAuraEnhancement(auraType)}
-                    disabled={loading || user.mana_balance < costs.aura!}
+                    disabled={loading || (user.mana_balance || 0) < costs.aura!}
                     className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      loading || user.mana_balance < costs.aura!
+                      loading || (user.mana_balance || 0) < costs.aura!
                         ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                         : selectedAura === auraType
                         ? `bg-gradient-to-r ${getAuraColor(auraType)} text-white border-transparent shadow-lg`

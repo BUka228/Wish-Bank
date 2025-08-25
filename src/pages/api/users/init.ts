@@ -55,6 +55,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       user = await createUser(telegramUser.id, name, telegramUser.username);
     }
 
+    // Убеждаемся, что у пользователя есть mana_balance
+    if (user.mana_balance === undefined || user.mana_balance === null) {
+      user.mana_balance = 0;
+    }
+
     res.status(200).json({ user });
   } catch (error) {
     console.error('User initialization error:', error);

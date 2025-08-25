@@ -35,7 +35,7 @@ export default function ManaQuickActions({ users, currentUser, onGiveMana, onCre
     setDescription('');
   };
 
-  const canGiveMana = currentUser.mana_balance >= manaAmount;
+  const canGiveMana = (currentUser.mana_balance || 0) >= manaAmount;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-gray-100 dark:border-gray-700 backdrop-blur-sm">
@@ -157,7 +157,7 @@ export default function ManaQuickActions({ users, currentUser, onGiveMana, onCre
               value={manaAmount}
               onChange={(e) => setManaAmount(Math.max(1, parseInt(e.target.value) || 1))}
               min="1"
-              max={currentUser.mana_balance}
+              max={currentUser.mana_balance || 0}
               className="w-full p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-gray-50 dark:bg-gray-700 hover:bg-white dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100"
             />
           </div>
@@ -178,7 +178,7 @@ export default function ManaQuickActions({ users, currentUser, onGiveMana, onCre
           {!canGiveMana && (
             <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-700">
               <div className="text-red-700 dark:text-red-300 text-sm">
-                ⚠️ Недостаточно Маны. У вас: {currentUser.mana_balance}, требуется: {manaAmount}
+                ⚠️ Недостаточно Маны. У вас: {currentUser.mana_balance || 0}, требуется: {manaAmount}
               </div>
             </div>
           )}

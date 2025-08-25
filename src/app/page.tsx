@@ -311,15 +311,35 @@ export default function Home() {
         </div>
 
         {/* Баланс Маны */}
-        <ManaDisplay user={currentUser} showAnimation={true} />
+        {currentUser && currentUser.mana_balance !== undefined ? (
+          <ManaDisplay user={currentUser} showAnimation={true} />
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-gray-100 dark:border-gray-700 backdrop-blur-sm">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/4 mb-4"></div>
+              <div className="h-16 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+            </div>
+          </div>
+        )}
 
         {/* Быстрые действия */}
-        <ManaQuickActions
-          users={users}
-          currentUser={currentUser}
-          onGiveMana={handleGiveMana}
-          onCreateWish={handleCreateWish}
-        />
+        {currentUser && currentUser.mana_balance !== undefined ? (
+          <ManaQuickActions
+            users={users}
+            currentUser={currentUser}
+            onGiveMana={handleGiveMana}
+            onCreateWish={handleCreateWish}
+          />
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-gray-100 dark:border-gray-700 backdrop-blur-sm">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-1/3 mb-4"></div>
+              <div className="h-12 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+              <div className="h-12 bg-gray-200 dark:bg-gray-600 rounded"></div>
+            </div>
+          </div>
+        )}
 
         {/* Активные желания */}
         <div className="space-y-4">

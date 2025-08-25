@@ -105,7 +105,7 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
     .sort((a, b) => {
       switch (sortBy) {
         case 'balance':
-          return b.mana_balance - a.mana_balance;
+          return (b.mana_balance || 0) - (a.mana_balance || 0);
         case 'activity':
           return new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime();
         case 'username':
@@ -187,7 +187,7 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
             <option value="">Выберите пользователя</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>
-                {user.username} (Баланс: {user.mana_balance})
+                {user.username} (Баланс: {user.mana_balance || 0})
               </option>
             ))}
           </select>
@@ -253,7 +253,7 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="border border-gray-300 p-2">{user.username}</td>
                 <td className="border border-gray-300 p-2 text-right font-semibold">
-                  {user.mana_balance.toLocaleString()}
+                  {(user.mana_balance || 0).toLocaleString()}
                 </td>
                 <td className="border border-gray-300 p-2 text-right text-green-600">
                   +{user.total_earned.toLocaleString()}

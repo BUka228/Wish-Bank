@@ -12,7 +12,7 @@ interface ManaDisplayProps {
 }
 
 export default function ManaDisplay({ user, showAnimation = false, onManaChange }: ManaDisplayProps) {
-  const [displayMana, setDisplayMana] = useState(user.mana_balance);
+  const [displayMana, setDisplayMana] = useState(user.mana_balance || 0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationDelta, setAnimationDelta] = useState(0);
   const [showFloatingNumber, setShowFloatingNumber] = useState(false);
@@ -22,8 +22,9 @@ export default function ManaDisplay({ user, showAnimation = false, onManaChange 
 
   // Handle mana changes with animation
   useEffect(() => {
-    if (showAnimation && user.mana_balance !== displayMana) {
-      const delta = user.mana_balance - displayMana;
+    const userManaBalance = user.mana_balance || 0;
+    if (showAnimation && userManaBalance !== displayMana) {
+      const delta = userManaBalance - displayMana;
       setAnimationDelta(delta);
       setIsAnimating(true);
       
@@ -47,11 +48,11 @@ export default function ManaDisplay({ user, showAnimation = false, onManaChange 
         const newValue = displayMana + (stepValue * currentStep);
         
         if (currentStep >= steps) {
-          setDisplayMana(user.mana_balance);
+          setDisplayMana(userManaBalance);
           setIsAnimating(false);
           setAnimationDelta(0);
           clearInterval(interval);
-          onManaChange?.(user.mana_balance);
+          onManaChange?.(userManaBalance);
           
           // Stop effects
           setTimeout(() => {
@@ -66,7 +67,7 @@ export default function ManaDisplay({ user, showAnimation = false, onManaChange 
       
       return () => clearInterval(interval);
     } else {
-      setDisplayMana(user.mana_balance);
+      setDisplayMana(userManaBalance);
     }
   }, [user.mana_balance, showAnimation, displayMana, onManaChange]);
 
@@ -105,7 +106,7 @@ export default function ManaDisplay({ user, showAnimation = false, onManaChange 
           <div className={`text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2 transition-all duration-300 ${
             isAnimating ? 'scale-110' : 'scale-100'
           }`}>
-            {displayMana.toLocaleString('ru-RU')}
+            {(displayMana || 0).toLocaleString('ru-RU')}
           </div>
           
           <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">{MANA_TEXTS.manaUnits}</div>

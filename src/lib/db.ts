@@ -59,6 +59,7 @@ export async function initDatabase() {
         green_balance INTEGER DEFAULT 0,
         blue_balance INTEGER DEFAULT 0,
         red_balance INTEGER DEFAULT 0,
+        mana_balance INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
@@ -324,8 +325,8 @@ async function executeSeedDataMigration() {
 // Пользователи
 export async function createUser(telegramId: string, name: string, username?: string): Promise<User> {
   const result = await sql`
-    INSERT INTO users (telegram_id, name, username)
-    VALUES (${telegramId}, ${name}, ${username})
+    INSERT INTO users (telegram_id, name, username, mana_balance)
+    VALUES (${telegramId}, ${name}, ${username}, 0)
     ON CONFLICT (telegram_id) 
     DO UPDATE SET name = ${name}, username = ${username}, updated_at = NOW()
     RETURNING *
@@ -342,7 +343,14 @@ export async function getUserByTelegramId(telegramId: string): Promise<User | nu
     const result = await sql`
       SELECT * FROM users WHERE telegram_id = ${telegramId}
     `;
-    return result[0] as User || null;
+    const user = result[0] as User || null;
+    
+    // Убеждаемся, что у пользователя есть mana_balance
+    if (user && (user.mana_balance === undefined || user.mana_balance === null)) {
+      user.mana_balance = 0;
+    }
+    
+    return user;
   } catch (error: any) {
     // Если таблица не существует, пробрасываем ошибку для обработки выше
     if (error.code === '42P01') {
