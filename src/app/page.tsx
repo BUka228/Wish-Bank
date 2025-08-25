@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { User, Wish } from '@/lib/db';
-import BalanceCard from '@/components/BalanceCard';
-import QuickActions from '@/components/QuickActions';
+import ManaDisplay from '@/components/ManaDisplay';
+import ManaQuickActions from '@/components/ManaQuickActions';
 import WishCard from '@/components/WishCard';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
 import NotificationSystem from '@/components/NotificationSystem';
@@ -145,29 +145,30 @@ export default function Home() {
     }
   };
 
-  const handleGiveWish = async (recipientId: string, type: 'green' | 'blue' | 'red', reason: string) => {
+  const handleGiveMana = async (recipientId: string, amount: number, reason: string) => {
+    if (!currentUser) return;
+    
     try {
-      const response = await fetch('/api/transactions', {
+      const response = await fetch('/api/mana/transfer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: recipientId,
-          type: 'credit',
-          wishType: type,
-          amount: 1,
+          fromUserId: currentUser.id,
+          toUserId: recipientId,
+          amount,
           reason
         })
       });
 
-      if (!response.ok) throw new Error('Failed to give wish');
+      if (!response.ok) throw new Error('Failed to transfer mana');
       
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to give wish');
+      setError(err instanceof Error ? err.message : 'Failed to transfer mana');
     }
   };
 
-  const handleCreateWish = async (type: 'green' | 'blue' | 'red', description: string, assigneeId?: string) => {
+  const handleCreateWish = async (description: string, assigneeId?: string) => {
     if (!currentUser) return;
 
     try {
@@ -175,7 +176,6 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type,
           description,
           authorId: currentUser.id,
           assigneeId
@@ -204,27 +204,7 @@ export default function Home() {
     }
   };
 
-  const handleExchange = async (fromType: 'green' | 'blue', toType: 'blue' | 'red') => {
-    if (!currentUser) return;
 
-    try {
-      const response = await fetch('/api/exchange', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          fromType,
-          toType
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to exchange wishes');
-      
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to exchange wishes');
-    }
-  };
 
   if (loading) {
     return (
@@ -329,14 +309,14 @@ export default function Home() {
           <p className="text-gray-600 dark:text-gray-300 text-sm">Управляйте желаниями вместе</p>
         </div>
 
-        {/* Баланс */}
-        <BalanceCard user={currentUser} onExchange={handleExchange} />
+        {/* Баланс Маны */}
+        <ManaDisplay user={currentUser} showAnimation={true} />
 
         {/* Быстрые действия */}
-        <QuickActions
+        <ManaQuickActions
           users={users}
           currentUser={currentUser}
-          onGiveWish={handleGiveWish}
+          onGiveMana={handleGiveMana}
           onCreateWish={handleCreateWish}
         />
 
