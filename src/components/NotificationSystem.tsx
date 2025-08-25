@@ -9,7 +9,7 @@ interface Notification {
   title: string;
   message: string;
   icon: string;
-  timestamp: Date;
+  timestamp: Date | string;
   read: boolean;
   actionUrl?: string;
 }
@@ -87,9 +87,16 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
     return colors[type as keyof typeof colors] || colors.quest;
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | string) => {
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Проверяем, что дата валидна
+    if (isNaN(dateObj.getTime())) {
+      return 'недавно';
+    }
+    
+    const diff = now.getTime() - dateObj.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
@@ -98,7 +105,7 @@ export default function NotificationSystem({ userId }: NotificationSystemProps) 
     if (minutes < 60) return `${minutes} мин назад`;
     if (hours < 24) return `${hours} ч назад`;
     if (days < 7) return `${days} д назад`;
-    return date.toLocaleDateString('ru-RU');
+    return dateObj.toLocaleDateString('ru-RU');
   };
 
   return (
