@@ -34,19 +34,9 @@ export class EconomyEngine {
    */
   async checkQuotas(userId: string): Promise<EconomyQuotas> {
     // Get user data
-    let user = await this.getUserById(userId);
+    const user = await this.getUserById(userId);
     if (!user) {
-      // Try to find user by telegram_id (for backward compatibility)
-      user = await getUserByTelegramId(userId);
-      if (!user) {
-        // Create mock user if not found (for development/testing)
-        try {
-          user = await createUser(userId, 'Тестовый Пользователь', 'testuser');
-        } catch (error) {
-          console.error('Failed to create user:', error);
-          throw new Error('User not found and could not be created');
-        }
-      }
+      throw new Error('User not found');
     }
 
     // Check if quotas need to be reset

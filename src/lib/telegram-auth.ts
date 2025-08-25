@@ -90,21 +90,22 @@ export function createMockTelegramUser(): TelegramUser {
 // Function to get user from request (for API endpoints)
 export async function getUserFromRequest(req: any): Promise<any | null> {
   try {
-    // In development or when no proper auth is available, return mock user
+    const mockTelegramId = '123456789';
+    
+    // In development or when no proper auth is available, find or create mock user
     if (process.env.NODE_ENV === 'development' || !process.env.TELEGRAM_BOT_TOKEN) {
-      return {
-        id: '123456789',
-        telegram_id: '123456789',
-        name: 'Тестовый Пользователь',
-        username: 'testuser',
-        green_balance: 10,
-        blue_balance: 5,
-        red_balance: 2,
-        rank: 'Рядовой',
-        experience: 50,
-        coins: 100,
-        partnerId: '987654321'
-      };
+      const { getUserByTelegramId, createUser } = await import('./db');
+      
+      let user = await getUserByTelegramId(mockTelegramId);
+      if (!user) {
+        try {
+          user = await createUser(mockTelegramId, 'Тестовый Пользователь', 'testuser');
+        } catch (error) {
+          console.error('Failed to create mock user:', error);
+          return null;
+        }
+      }
+      return user;
     }
 
     // In production, extract from headers or session
@@ -112,19 +113,18 @@ export async function getUserFromRequest(req: any): Promise<any | null> {
     if (!authHeader) {
       // Fallback to mock user if no auth header (for testing)
       console.warn('No authorization header found, using mock user');
-      return {
-        id: '123456789',
-        telegram_id: '123456789',
-        name: 'Тестовый Пользователь',
-        username: 'testuser',
-        green_balance: 10,
-        blue_balance: 5,
-        red_balance: 2,
-        rank: 'Рядовой',
-        experience: 50,
-        coins: 100,
-        partnerId: '987654321'
-      };
+      const { getUserByTelegramId, createUser } = await import('./db');
+      
+      let user = await getUserByTelegramId(mockTelegramId);
+      if (!user) {
+        try {
+          user = await createUser(mockTelegramId, 'Тестовый Пользователь', 'testuser');
+        } catch (error) {
+          console.error('Failed to create mock user:', error);
+          return null;
+        }
+      }
+      return user;
     }
 
     // Extract Telegram WebApp init data from header
@@ -139,51 +139,43 @@ export async function getUserFromRequest(req: any): Promise<any | null> {
     const telegramUser = validateTelegramWebAppData(initData, botToken);
     if (!telegramUser) {
       console.warn('Invalid Telegram WebApp data, using mock user');
-      return {
-        id: '123456789',
-        telegram_id: '123456789',
-        name: 'Тестовый Пользователь',
-        username: 'testuser',
-        green_balance: 10,
-        blue_balance: 5,
-        red_balance: 2,
-        rank: 'Рядовой',
-        experience: 50,
-        coins: 100,
-        partnerId: '987654321'
-      };
+      const { getUserByTelegramId, createUser } = await import('./db');
+      
+      let user = await getUserByTelegramId(mockTelegramId);
+      if (!user) {
+        try {
+          user = await createUser(mockTelegramId, 'Тестовый Пользователь', 'testuser');
+        } catch (error) {
+          console.error('Failed to create mock user:', error);
+          return null;
+        }
+      }
+      return user;
     }
 
-    // Here you would typically fetch the full user data from database
-    // For now, return the telegram user data
-    return {
-      id: telegramUser.id,
-      telegram_id: telegramUser.id,
-      name: telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : ''),
-      username: telegramUser.username,
-      // Default values - should be fetched from database
-      green_balance: 0,
-      blue_balance: 0,
-      red_balance: 0,
-      rank: 'Рядовой',
-      experience: 0,
-      coins: 0
-    };
+    // Fetch or create user from database
+    const { getUserByTelegramId, createUser } = await import('./db');
+    let user = await getUserByTelegramId(telegramUser.id);
+    if (!user) {
+      const name = telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : '');
+      user = await createUser(telegramUser.id, name, telegramUser.username);
+    }
+    return user;
   } catch (error) {
     console.error('Error getting user from request:', error);
-    // Return mock user as fallback
-    return {
-      id: '123456789',
-      telegram_id: '123456789',
-      name: 'Тестовый Пользователь',
-      username: 'testuser',
-      green_balance: 10,
-      blue_balance: 5,
-      red_balance: 2,
-      rank: 'Рядовой',
-      experience: 50,
-      coins: 100,
-      partnerId: '987654321'
-    };
+    // Try to return mock user from database as fallback
+    try {
+      const { getUserByTelegramId, createUser } = await import('./db');
+      const mockTelegramId = '123456789';
+      
+      let user = await getUserByTelegramId(mockTelegramId);
+      if (!user) {
+        user = await createUser(mockTelegramId, 'Тестовый Пользователь', 'testuser');
+      }
+      return user;
+    } catch (dbError) {
+      console.error('Failed to create fallback user:', dbError);
+      return null;
+    }
   }
 }
