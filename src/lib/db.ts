@@ -429,6 +429,20 @@ export async function getUserByTelegramId(telegramId: string): Promise<User | nu
   }
 }
 
+export async function getUserById(userId: string): Promise<User | null> {
+  if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+    throw new Error('DATABASE_URL or POSTGRES_URL environment variable is not set');
+  }
+
+  try {
+    const result = await sql`SELECT * FROM users WHERE id = ${userId}`;
+    return result[0] as User || null;
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
+  }
+}
+
 export async function getAllUsers(): Promise<User[]> {
   const result = await sql`SELECT * FROM users ORDER BY created_at ASC`;
   return result as User[];

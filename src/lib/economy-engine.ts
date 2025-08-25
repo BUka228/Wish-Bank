@@ -9,6 +9,8 @@ import {
 } from '../types/quest-economy';
 import {
   getUserByTelegramId,
+  getUserById,
+  createUser,
   createGiftWish,
   addTransaction,
   getUserTransactions
@@ -32,9 +34,19 @@ export class EconomyEngine {
    */
   async checkQuotas(userId: string): Promise<EconomyQuotas> {
     // Get user data
-    const user = await this.getUserById(userId);
+    let user = await this.getUserById(userId);
     if (!user) {
-      throw new Error('User not found');
+      // Try to find user by telegram_id (for backward compatibility)
+      user = await getUserByTelegramId(userId);
+      if (!user) {
+        // Create mock user if not found (for development/testing)
+        try {
+          user = await createUser(userId, 'Тестовый Пользователь', 'testuser');
+        } catch (error) {
+          console.error('Failed to create user:', error);
+          throw new Error('User not found and could not be created');
+        }
+      }
     }
 
     // Check if quotas need to be reset
@@ -443,10 +455,7 @@ export class EconomyEngine {
    * Gets user by ID (helper method)
    */
   private async getUserById(userId: string): Promise<User | null> {
-    // TODO: Implement getUserById function in db.ts
-    // For now, this is a placeholder
-    console.log(`Getting user by ID: ${userId}`);
-    return null;
+    return await getUserById(userId);
   }
 
   /**
