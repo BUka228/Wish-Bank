@@ -23,6 +23,8 @@ export interface User {
   green_balance: number;
   blue_balance: number;
   red_balance: number;
+  mana_balance: number;
+  legacy_migration_completed: boolean;
   rank: string;
   experience_points: number;
   daily_quota_used: number;
@@ -57,9 +59,12 @@ export interface Transaction {
   type: 'credit' | 'debit';
   wish_type: 'green' | 'blue' | 'red';
   amount: number;
+  mana_amount: number;
   reason: string;
   reference_id?: string;
   transaction_category: string;
+  transaction_source: string;
+  enhancement_id?: string;
   experience_gained: number;
   created_at: Date;
   metadata?: any;
@@ -234,6 +239,8 @@ async function executeQuestEconomyMigration() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS weekly_quota_used INTEGER DEFAULT 0`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS monthly_quota_used INTEGER DEFAULT 0`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_quota_reset DATE DEFAULT CURRENT_DATE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mana_balance INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS legacy_migration_completed BOOLEAN DEFAULT FALSE`;
 
   // Создание таблицы квестов
   await sql`
@@ -323,6 +330,9 @@ async function executeQuestEconomyMigration() {
   // Расширение таблицы транзакций
   await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transaction_category VARCHAR(50) DEFAULT 'manual'`;
   await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS experience_gained INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS mana_amount INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transaction_source VARCHAR(50)`;
+  await sql`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS enhancement_id UUID`;
 
   // Создание индексов
   await sql`CREATE INDEX IF NOT EXISTS idx_quests_assignee_status ON quests(assignee_id, status)`;

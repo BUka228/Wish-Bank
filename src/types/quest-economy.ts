@@ -9,6 +9,8 @@ export interface User {
   green_balance: number;
   blue_balance: number;
   red_balance: number;
+  mana_balance: number;
+  legacy_migration_completed: boolean;
   rank: string;
   experience_points: number;
   daily_quota_used: number;
@@ -66,9 +68,11 @@ export interface EnhancedWish {
   is_historical: boolean;
   shared_approved_by?: string;
   priority: number;
+  aura?: string;
   created_at: Date;
   completed_at?: Date;
   metadata?: Record<string, any>;
+  enhancements?: any[]; // Will be properly typed when enhancement system is implemented
 }
 
 export interface WishCategory {
@@ -137,9 +141,12 @@ export interface Transaction {
   type: 'credit' | 'debit';
   wish_type: 'green' | 'blue' | 'red';
   amount: number;
+  mana_amount: number;
   reason: string;
   reference_id?: string;
   transaction_category: string;
+  transaction_source: string;
+  enhancement_id?: string;
   experience_gained: number;
   created_at: Date;
   metadata?: Record<string, any>;
