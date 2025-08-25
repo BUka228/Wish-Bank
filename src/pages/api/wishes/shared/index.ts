@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
          ORDER BY w.created_at DESC
       `;
 
-      const wishes = result.map(row => ({
+      const wishes = result.map((row: any) => ({
         id: row.id,
         type: row.type,
         description: row.description,

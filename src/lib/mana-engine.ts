@@ -287,6 +287,100 @@ export class ManaEngine implements IManaEngine {
   }
 
   /**
+   * Перевести Ману от одного пользователя к другому
+   */
+  async transferMana(fromUserId: string, toUserId: string, amount: number, reason: string): Promise<{
+    success: boolean;
+    fromBalance: number;
+    toBalance: number;
+  }> {
+    const endTimer = DatabaseMonitor.startQuery('transferMana');
+    const startTime = Date.now();
+    
+    try {
+      // Валидация входных данных
+      await manaValidator.validateUser(fromUserId);
+      await manaValidator.validateUser(toUserId);
+      manaValidator.validateManaAmount(amount);
+      
+      if (fromUserId === toUserId) {
+        throw new ManaValidationError(['Cannot transfer mana to yourself']);
+      }
+
+      // Проверяем баланс отправителя
+      const fromBalance = await this.getUserMana(fromUserId);
+      if (fromBalance < amount) {
+        throw new InsufficientManaError(amount, fromBalance, { userId: fromUserId });
+      }
+
+      // Выполняем трансфер в транзакции
+      const result = await manaTransactionManager.executeManaTransaction(
+        async (sql) => {
+          // Списываем у отправителя
+          await this.spendMana(fromUserId, amount, `Transfer to user: ${reason}`);
+          
+          // Начисляем получателю
+          await this.addMana(toUserId, amount, `Transfer from user: ${reason}`);
+          
+          // Получаем новые балансы
+          const newFromBalance = await this.getUserMana(fromUserId);
+          const newToBalance = await this.getUserMana(toUserId);
+          
+          return {
+            success: true,
+            fromBalance: newFromBalance,
+            toBalance: newToBalance
+          };
+        },
+        {
+          userId: fromUserId,
+          operationType: 'transfer',
+          description: `Transfer ${amount} mana to ${toUserId}: ${reason}`
+        }
+      );
+
+      // Очищаем кэш для обоих пользователей
+      ManaCache.invalidateAllUserData(fromUserId);
+      ManaCache.invalidateAllUserData(toUserId);
+
+      // Логируем операцию
+      this.logAuditEvent(fromUserId, 'spend', amount, `Transfer to ${toUserId}: ${reason}`, {
+        recipientId: toUserId,
+        transferType: 'outgoing'
+      });
+      
+      this.logAuditEvent(toUserId, 'earn', amount, `Transfer from ${fromUserId}: ${reason}`, {
+        senderId: fromUserId,
+        transferType: 'incoming'
+      });
+
+      // Мониторинг производительности
+      manaPerformanceMonitor.recordManaOperation('addMana', toUserId, Date.now() - startTime, true, {
+        operation: 'transferMana',
+        fromUserId,
+        amount,
+        reason
+      });
+      
+      return result;
+    } catch (error: any) {
+      endTimer();
+      manaPerformanceMonitor.recordManaOperation('addMana', toUserId, Date.now() - startTime, false, {
+        operation: 'transferMana',
+        fromUserId,
+        amount,
+        reason,
+        error: error.message
+      });
+      
+      logManaError(error, { operation: 'transferMana', fromUserId, toUserId, amount, reason });
+      throw error;
+    } finally {
+      endTimer();
+    }
+  }
+
+  /**
    * Получить историю транзакций пользователя
    */
   async getUserTransactions(userId: string, limit: number = 50): Promise<ManaTransaction[]> {
@@ -506,4 +600,13 @@ export class ManaEngine implements IManaEngine {
 
 // Экспорт единственного экземпляра
 export const manaEngine = ManaEngine.getInstance();
+
+// Экспорт удобных функций
+export const transferMana = (fromUserId: string, toUserId: string, amount: number, reason: string) =>
+  manaEngine.transferMana(fromUserId, toUserId, amount, reason);
+
+export const getUserMana = (userId: string) => manaEngine.getUserMana(userId);
+export const addMana = (userId: string, amount: number, reason: string) => manaEngine.addMana(userId, amount, reason);
+export const spendMana = (userId: string, amount: number, reason: string) => manaEngine.spendMana(userId, amount, reason);
+
 export default manaEngine;

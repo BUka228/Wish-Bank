@@ -1,6 +1,6 @@
 'use client';
 
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 import { useState } from 'react';
 import { MANA_TEXTS } from '@/lib/mana-localization';
 

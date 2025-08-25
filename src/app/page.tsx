@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User, Wish } from '@/lib/db';
+import { User, Wish } from '@/types/database';
 import { EnhancedWish } from '@/types/mana-system';
 import ManaDisplay from '@/components/ManaDisplay';
 import ManaQuickActions from '@/components/ManaQuickActions';

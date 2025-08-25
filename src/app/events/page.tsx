@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 import { RandomEvent } from '@/types/quest-economy';
 import EventCard from '@/components/events/EventCard';
 import EventHistory from '@/components/events/EventHistory';

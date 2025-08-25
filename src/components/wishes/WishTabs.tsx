@@ -6,7 +6,7 @@ import WishCard from '../WishCard';
 import WishFilter from './WishFilter';
 import { SwipeableTabs } from '../TouchInteractions';
 
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 
 interface WishTabsProps {
   currentUserId: string;

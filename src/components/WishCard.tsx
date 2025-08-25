@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Wish, User } from '@/lib/db';
+import { Wish, User } from '@/types/database';
 import { EnhancedWish } from '@/types/mana-system';
 import EnhancementInterface from './EnhancementInterface';
 import { MANA_TEXTS, getAuraName } from '@/lib/mana-localization';

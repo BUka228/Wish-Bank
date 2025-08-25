@@ -1,6 +1,6 @@
 'use client';
 
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 
 interface BalanceCardProps {
   user: User;

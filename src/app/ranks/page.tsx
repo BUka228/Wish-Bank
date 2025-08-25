@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 import { Rank } from '@/types/quest-economy';
 import RankBadge from '@/components/ranks/RankBadge';
 import RankProgress from '@/components/ranks/RankProgress';

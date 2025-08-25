@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 import { Enhancement, EnhancedWish, AuraType } from '@/types/mana-system';
 import { 
   MANA_TEXTS, 

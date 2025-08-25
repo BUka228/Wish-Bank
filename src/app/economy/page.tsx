@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 import EconomyDashboard from '@/components/economy/EconomyDashboard';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
 import NotificationSystem from '@/components/NotificationSystem';

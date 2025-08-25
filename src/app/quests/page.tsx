@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 import { Quest } from '@/types/quest-economy';
 import QuestBoard from '@/components/quests/QuestBoard';
 import QuestCreator from '@/components/quests/QuestCreator';

@@ -1,6 +1,6 @@
 'use client';
 
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 import { useState, useEffect } from 'react';
 import { MANA_TEXTS, formatManaAmount } from '@/lib/mana-localization';
 import { ManaFloatingNumber, ManaGlowEffect, ManaSparkleEffect, ManaRippleEffect } from '@/components/ManaAnimations';

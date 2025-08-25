@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User } from '@/lib/db';
+import { User } from '@/types/database';
 import { EnhancedWish } from '@/types/quest-economy';
 import WishTabs from '@/components/wishes/WishTabs';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
