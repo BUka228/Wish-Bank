@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { FetchInterceptorProvider } from '@/components/FetchInterceptorProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -21,7 +22,9 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
         <ThemeProvider>
-          {children}
+          <FetchInterceptorProvider>
+            {children}
+          </FetchInterceptorProvider>
         </ThemeProvider>
       </body>
     </html>
