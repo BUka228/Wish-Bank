@@ -174,6 +174,7 @@ export default function WishesPage() {
         {currentUser && (
           <WishTabs
             currentUserId={currentUser.id}
+            currentUser={currentUser}
             wishes={wishes}
             onWishUpdate={handleWishUpdate}
           />

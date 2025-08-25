@@ -6,6 +6,10 @@
 ALTER TABLE users ADD COLUMN IF NOT EXISTS mana_balance INTEGER DEFAULT 0;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS legacy_migration_completed BOOLEAN DEFAULT FALSE;
 
+-- Add priority and aura fields to wishes table for mana system
+ALTER TABLE wishes ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 1;
+ALTER TABLE wishes ADD COLUMN IF NOT EXISTS aura VARCHAR(20);
+
 -- Create wish_enhancements table for storing wish enhancements
 CREATE TABLE IF NOT EXISTS wish_enhancements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -37,6 +41,10 @@ CREATE INDEX IF NOT EXISTS idx_transactions_mana ON transactions(mana_amount) WH
 CREATE INDEX IF NOT EXISTS idx_transactions_source ON transactions(transaction_source);
 CREATE INDEX IF NOT EXISTS idx_transactions_enhancement ON transactions(enhancement_id) WHERE enhancement_id IS NOT NULL;
 
+-- Add indexes for wish priority and aura for performance
+CREATE INDEX IF NOT EXISTS idx_wishes_priority ON wishes(priority);
+CREATE INDEX IF NOT EXISTS idx_wishes_aura ON wishes(aura) WHERE aura IS NOT NULL;
+
 -- Add check constraints for data integrity
 ALTER TABLE wish_enhancements ADD CONSTRAINT IF NOT EXISTS chk_priority_level 
     CHECK (type != 'priority' OR (level >= 1 AND level <= 5));
@@ -57,3 +65,6 @@ COMMENT ON COLUMN wish_enhancements.cost IS 'Mana cost paid for this enhancement
 COMMENT ON COLUMN transactions.mana_amount IS 'Amount of mana involved in transaction';
 COMMENT ON COLUMN transactions.transaction_source IS 'Source of transaction (quest, event, enhancement, etc.)';
 COMMENT ON COLUMN transactions.enhancement_id IS 'Reference to enhancement if transaction was for enhancement';
+
+COMMENT ON COLUMN wishes.priority IS 'Priority level of wish (1-5), affects sorting order';
+COMMENT ON COLUMN wishes.aura IS 'Visual aura effect applied to wish (romantic, gaming, mysterious)';

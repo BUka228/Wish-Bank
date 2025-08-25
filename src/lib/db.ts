@@ -48,6 +48,7 @@ export interface Wish {
   is_historical: boolean;
   shared_approved_by?: string;
   priority: number;
+  aura?: string;
   created_at: Date;
   completed_at?: Date;
   metadata?: any;

@@ -6,8 +6,11 @@ import WishCard from '../WishCard';
 import WishFilter from './WishFilter';
 import { SwipeableTabs } from '../TouchInteractions';
 
+import { User } from '@/lib/db';
+
 interface WishTabsProps {
   currentUserId: string;
+  currentUser?: User;
   wishes: {
     my: EnhancedWish[];
     assigned: EnhancedWish[];
@@ -18,7 +21,7 @@ interface WishTabsProps {
 
 type TabType = 'my' | 'assigned' | 'shared';
 
-export default function WishTabs({ currentUserId, wishes, onWishUpdate }: WishTabsProps) {
+export default function WishTabs({ currentUserId, currentUser, wishes, onWishUpdate }: WishTabsProps) {
   const [activeTab, setActiveTab] = useState(0); // Changed to number for SwipeableTabs
   const [filteredWishes, setFilteredWishes] = useState<{
     my: EnhancedWish[];
@@ -179,7 +182,10 @@ export default function WishTabs({ currentUserId, wishes, onWishUpdate }: WishTa
                 key={wish.id}
                 wish={wish}
                 onComplete={handleCompleteWish}
+                onCancel={handleCancelWish}
                 currentUserId={currentUserId}
+                currentUser={currentUser}
+                onEnhancementUpdate={onWishUpdate}
               />
             ))}
           </div>
