@@ -261,7 +261,7 @@ export interface QuotaValidation extends ValidationResult {
 
 // Notification system interfaces
 export interface NotificationData {
-  type: 'quest_assigned' | 'quest_completed' | 'quest_expired' | 'event_available' | 'event_completed' | 'event_expired' | 'wish_gifted' | 'rank_promoted' | 'shared_wish_request';
+  type: 'quest_assigned' | 'quest_completed' | 'quest_expired' | 'event_available' | 'event_completed' | 'event_expired' | 'event_validated' | 'event_reminder' | 'new_event_generated' | 'system_event' | 'wish_gifted' | 'rank_promoted' | 'shared_wish_request';
   title: string;
   message: string;
   recipient_id?: string;

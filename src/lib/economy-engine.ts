@@ -523,6 +523,71 @@ export class EconomyEngine {
       reasoning
     };
   }
+
+  /**
+   * Checks and resets quotas if needed - Task 7.3
+   */
+  async checkAndResetQuotas(userId: string): Promise<boolean> {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) {
+        console.error(`User not found: ${userId}`);
+        return false;
+      }
+
+      return await this.resetQuotasIfNeeded(user);
+    } catch (error) {
+      console.error(`Error checking quotas for user ${userId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Collects system-wide economy metrics - Task 7.3
+   */
+  async collectSystemMetrics(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    totalTransactions: number;
+    averageBalance: { green: number; blue: number; red: number };
+    quotaUtilization: { daily: number; weekly: number; monthly: number };
+    totalGiftsToday: number;
+    totalGiftsThisWeek: number;
+    totalGiftsThisMonth: number;
+  }> {
+    try {
+      // Import the metrics collector here to avoid circular dependencies
+      const { economyMetricsCollector } = await import('./economy-metrics');
+      
+      const fullMetrics = await economyMetricsCollector.collectSystemMetrics();
+      
+      // Transform to the expected format
+      const metrics = {
+        totalUsers: fullMetrics.users.total,
+        activeUsers: fullMetrics.users.active,
+        totalTransactions: fullMetrics.transactions.total,
+        averageBalance: {
+          green: fullMetrics.balances.averageGreen,
+          blue: fullMetrics.balances.averageBlue,
+          red: fullMetrics.balances.averageRed
+        },
+        quotaUtilization: {
+          daily: fullMetrics.quotas.averageDailyUsage,
+          weekly: fullMetrics.quotas.averageWeeklyUsage,
+          monthly: fullMetrics.quotas.averageMonthlyUsage
+        },
+        totalGiftsToday: fullMetrics.gifts.totalToday,
+        totalGiftsThisWeek: fullMetrics.gifts.totalThisWeek,
+        totalGiftsThisMonth: fullMetrics.gifts.totalThisMonth
+      };
+
+      console.log('Collected system metrics:', metrics);
+      return metrics;
+    } catch (error) {
+      console.error('Error collecting system metrics:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

@@ -462,6 +462,27 @@ export class EventGenerator {
       description: categoryDescriptions[category as keyof typeof categoryDescriptions] || category
     }));
   }
+
+  /**
+   * Determines if a user should get a new random event - Task 7.2
+   */
+  async shouldGenerateEvent(userId: string): Promise<boolean> {
+    try {
+      // Check if user already has an active event
+      const existingEvent = await getCurrentEvent(userId);
+      
+      // If user has an active event, don't generate a new one
+      if (existingEvent && existingEvent.status === 'active') {
+        return false;
+      }
+
+      // If no active event, user should get a new one
+      return true;
+    } catch (error) {
+      console.error(`Error checking if user ${userId} should get new event:`, error);
+      return false;
+    }
+  }
 }
 
 // Export singleton instance

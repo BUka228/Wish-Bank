@@ -294,4 +294,27 @@ export class RankCalculator {
     const rank = this.getRankById(rankId);
     return rank ? rank.min_experience : 0;
   }
+
+  /**
+   * Update user rank based on current experience - Task 7.3
+   */
+  async updateUserRank(userId: string): Promise<boolean> {
+    try {
+      // TODO: Implement actual database integration
+      // This would:
+      // 1. Get user's current experience from database
+      // 2. Calculate new rank
+      // 3. Update user's rank in database if changed
+      // 4. Send promotion notification if promoted
+      
+      console.log(`Updating rank for user ${userId}`);
+      return false; // Return true if rank was actually updated
+    } catch (error) {
+      console.error(`Error updating rank for user ${userId}:`, error);
+      return false;
+    }
+  }
 }
+
+// Export singleton instance
+export const rankCalculator = new RankCalculator();
