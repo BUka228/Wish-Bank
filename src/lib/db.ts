@@ -8,7 +8,7 @@ if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
 }
 
 // Создаем подключение к базе данных
-const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '');
+export const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '');
 
 // Экспортируем объект db для совместимости с новыми API
 export const db = {
