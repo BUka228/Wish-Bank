@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { User, Wish } from '@/lib/db';
+import { EnhancedWish } from '@/types/mana-system';
 import ManaDisplay from '@/components/ManaDisplay';
 import ManaQuickActions from '@/components/ManaQuickActions';
 import WishCard from '@/components/WishCard';
@@ -11,7 +12,7 @@ import NotificationSystem from '@/components/NotificationSystem';
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [wishes, setWishes] = useState<Wish[]>([]);
+  const [wishes, setWishes] = useState<(Wish & Partial<EnhancedWish>)[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -348,14 +349,28 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-3">
-              {wishes.map(wish => (
-                <WishCard
-                  key={wish.id}
-                  wish={wish}
-                  currentUserId={currentUser.id}
-                  onComplete={handleCompleteWish}
-                />
-              ))}
+              {wishes
+                .sort((a, b) => {
+                  // Sort by status first (active first), then by priority (highest first), then by date (newest first)
+                  if (a.status === 'active' && b.status !== 'active') return -1;
+                  if (a.status !== 'active' && b.status === 'active') return 1;
+                  
+                  const aPriority = (a as any).priority || 1;
+                  const bPriority = (b as any).priority || 1;
+                  if (aPriority !== bPriority) return bPriority - aPriority;
+                  
+                  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                })
+                .map(wish => (
+                  <WishCard
+                    key={wish.id}
+                    wish={wish}
+                    currentUserId={currentUser.id}
+                    currentUser={currentUser}
+                    onComplete={handleCompleteWish}
+                    onEnhancementUpdate={loadData}
+                  />
+                ))}
             </div>
           )}
         </div>

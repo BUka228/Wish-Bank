@@ -18,6 +18,8 @@ import {
   getUserByTelegramId,
   addTransaction
 } from './db';
+import { manaEngine } from './mana-engine';
+import { MANA_TEXTS } from './mana-localization';
 
 /**
  * Quest Engine - Manages quest lifecycle, validation, and rewards
@@ -270,49 +272,40 @@ export class QuestEngine {
   }
 
   /**
-   * Calculates quest rewards based on difficulty and type
+   * Calculates quest rewards based on difficulty and type (now using Mana system)
    */
   private calculateQuestRewards(
     difficulty: 'easy' | 'medium' | 'hard' | 'epic',
     rewardType: string
   ): { rewardAmount: number; experienceReward: number } {
+    // Use ManaEngine to calculate Mana rewards based on difficulty
+    const manaReward = manaEngine.calculateManaReward(difficulty, '');
+    
     const difficultyMultipliers = {
-      easy: { reward: 1, experience: 10 },
-      medium: { reward: 2, experience: 25 },
-      hard: { reward: 3, experience: 50 },
-      epic: { reward: 5, experience: 100 }
+      easy: { experience: 10 },
+      medium: { experience: 25 },
+      hard: { experience: 50 },
+      epic: { experience: 100 }
     };
 
     const multiplier = difficultyMultipliers[difficulty];
-    
-    // Base reward amount varies by type
-    const baseRewards = {
-      green: 1,
-      blue: 1,
-      red: 1
-    };
-
-    const baseReward = baseRewards[rewardType as keyof typeof baseRewards] || 1;
 
     return {
-      rewardAmount: baseReward * multiplier.reward,
+      rewardAmount: manaReward,
       experienceReward: multiplier.experience
     };
   }
 
   /**
-   * Grants rewards to quest assignee upon completion
+   * Grants rewards to quest assignee upon completion (now using Mana system)
    */
   private async grantQuestRewards(quest: Quest): Promise<boolean> {
     try {
-      // Grant wish balance reward
-      await addTransaction(
+      // Grant Mana reward instead of old currency system
+      await manaEngine.addMana(
         quest.assignee_id,
-        'credit',
-        quest.reward_type as 'green' | 'blue' | 'red',
         quest.reward_amount,
-        `Quest completion reward: ${quest.title}`,
-        quest.id
+        `Завершение квеста: ${quest.title}`
       );
 
       // Grant experience points (would integrate with rank system)
@@ -388,7 +381,7 @@ export class QuestEngine {
   }
 
   /**
-   * Gets notification message based on type and quest
+   * Gets notification message based on type and quest (now with Mana system)
    */
   private getNotificationMessage(
     type: 'quest_assigned' | 'quest_completed' | 'quest_expired',
@@ -396,9 +389,9 @@ export class QuestEngine {
   ): string {
     switch (type) {
       case 'quest_assigned':
-        return `Вам назначен новый квест: "${quest.title}". Награда: ${quest.reward_amount} ${quest.reward_type}`;
+        return `Вам назначен новый квест: "${quest.title}". Награда: ${quest.reward_amount} ${MANA_TEXTS.mana}`;
       case 'quest_completed':
-        return `Квест "${quest.title}" был отмечен как выполненный. Награда начислена!`;
+        return `Квест "${quest.title}" был отмечен как выполненный. ${MANA_TEXTS.success.manaReceived}: ${quest.reward_amount} ${MANA_TEXTS.mana}!`;
       case 'quest_expired':
         return `Квест "${quest.title}" просрочен и был автоматически закрыт.`;
       default:

@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Invalid event ID' });
     }
 
-    // Complete the event
+    // Complete the event (now handles Mana rewards internally)
     const result = await eventGenerator.completeRandomEvent(String(eventId), user.id);
     const completedEvent = result.event;
 
@@ -55,18 +55,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rank: promotionResult.newRank.id
     });
 
-    // Award Mana based on event reward type
-    const manaReward = manaEngine.calculateManaReward(
-      '', 
-      completedEvent.reward_type || 'daily'
-    );
-    const finalManaReward = Math.floor(manaReward * multiplier);
-    
-    await manaEngine.addMana(
-      user.id, 
-      finalManaReward, 
-      `event_completion_${completedEvent.id}`
-    );
+    // Mana reward is now handled by EventGenerator.grantEventRewards()
+    // Get the final mana reward amount from the event
+    const finalManaReward = completedEvent.reward_amount;
 
     const response: any = {
       event: completedEvent,

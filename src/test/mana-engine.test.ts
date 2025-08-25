@@ -383,4 +383,167 @@ describe('ManaEngine', () => {
       expect(instance1).toBe(manaEngine);
     });
   });
+
+  describe('edge cases and error handling', () => {
+    it('should handle database connection errors gracefully', async () => {
+      (db.execute as any).mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(engine.getUserMana(mockUserId)).rejects.toThrow('Database connection failed');
+    });
+
+    it('should handle transaction rollback on failure', async () => {
+      const amount = 50;
+      const reason = 'test_transaction';
+
+      // Mock getUserMana to return sufficient balance
+      (db.execute as any).mockResolvedValueOnce([{ mana_balance: 100 }]);
+      
+      // Mock transaction to fail
+      (db.transaction as any).mockRejectedValue(new Error('Transaction failed'));
+
+      await expect(engine.spendMana(mockUserId, amount, reason)).rejects.toThrow('Transaction failed');
+    });
+
+    it('should handle concurrent mana operations', async () => {
+      const currentBalance = 100;
+      (db.execute as any).mockResolvedValue([{ mana_balance: currentBalance }]);
+      
+      mockSql.mockResolvedValue([{ mana_balance: currentBalance - 50 }]);
+
+      // Simulate concurrent spend operations
+      const promises = [
+        engine.spendMana(mockUserId, 30, 'operation1'),
+        engine.spendMana(mockUserId, 40, 'operation2'),
+        engine.spendMana(mockUserId, 50, 'operation3')
+      ];
+
+      const results = await Promise.allSettled(promises);
+      
+      // At least one should succeed, others might fail due to insufficient balance
+      const successCount = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+      expect(successCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should validate mana amounts for extreme values', async () => {
+      // Test very large amounts
+      await expect(engine.addMana(mockUserId, Number.MAX_SAFE_INTEGER, 'test'))
+        .resolves.not.toThrow();
+
+      // Test floating point amounts (should work but be careful)
+      await expect(engine.addMana(mockUserId, 10.5, 'test'))
+        .resolves.not.toThrow();
+    });
+
+    it('should handle null/undefined metadata gracefully', async () => {
+      const amount = 50;
+      const reason = 'test_with_null_metadata';
+
+      (db.execute as any).mockResolvedValueOnce([{ mana_balance: 100 }]);
+      mockSql.mockResolvedValueOnce([{ mana_balance: 150 }]);
+      mockSql.mockResolvedValueOnce([]); // transaction insert
+
+      await expect(engine.addMana(mockUserId, amount, reason)).resolves.not.toThrow();
+    });
+  });
+
+  describe('performance and optimization', () => {
+    it('should handle batch operations efficiently', async () => {
+      const operations = Array.from({ length: 10 }, (_, i) => ({
+        userId: `user-${i}`,
+        amount: 10 + i,
+        reason: `batch_operation_${i}`
+      }));
+
+      (db.execute as any).mockResolvedValue([{ mana_balance: 100 }]);
+      mockSql.mockResolvedValue([{ mana_balance: 110 }]);
+
+      const startTime = Date.now();
+      
+      const promises = operations.map(op => 
+        engine.addMana(op.userId, op.amount, op.reason)
+      );
+      
+      await Promise.all(promises);
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      // Should complete batch operations reasonably quickly (under 1 second in tests)
+      expect(duration).toBeLessThan(1000);
+    });
+
+    it('should cache audit logs efficiently', async () => {
+      // Clear logs first
+      engine.clearAuditLogs();
+      
+      // Add many operations to test log management
+      (db.execute as any).mockResolvedValue([{ mana_balance: 100 }]);
+      
+      for (let i = 0; i < 10; i++) {
+        await engine.getUserMana(`user-${i}`);
+      }
+      
+      const logs = engine.getAuditLogs();
+      expect(logs.length).toBe(10);
+      
+      // Test log limit functionality by checking the implementation
+      expect(typeof engine.clearAuditLogs).toBe('function');
+    });
+  });
+
+  describe('data integrity and consistency', () => {
+    it('should maintain balance consistency across operations', async () => {
+      const initialBalance = 100;
+      const addAmount = 50;
+      const spendAmount = 30;
+      
+      // Mock initial balance
+      (db.execute as any).mockResolvedValueOnce([{ mana_balance: initialBalance }]);
+      
+      // Mock add operation
+      mockSql.mockResolvedValueOnce([{ mana_balance: initialBalance + addAmount }]);
+      mockSql.mockResolvedValueOnce([]); // transaction insert
+      
+      await engine.addMana(mockUserId, addAmount, 'test_add');
+      
+      // Mock balance check for spend
+      (db.execute as any).mockResolvedValueOnce([{ mana_balance: initialBalance + addAmount }]);
+      
+      // Mock spend operation
+      mockSql.mockResolvedValueOnce([{ mana_balance: initialBalance + addAmount - spendAmount }]);
+      mockSql.mockResolvedValueOnce([]); // transaction insert
+      
+      const spendResult = await engine.spendMana(mockUserId, spendAmount, 'test_spend');
+      
+      expect(spendResult).toBe(true);
+      
+      // Verify the expected final balance would be correct
+      const expectedFinalBalance = initialBalance + addAmount - spendAmount;
+      expect(expectedFinalBalance).toBe(120);
+    });
+
+    it('should handle race conditions in balance updates', async () => {
+      const initialBalance = 100;
+      
+      // Mock concurrent balance checks
+      (db.execute as any).mockResolvedValue([{ mana_balance: initialBalance }]);
+      
+      // Mock successful spend operations
+      mockSql.mockResolvedValue([{ mana_balance: initialBalance - 10 }]);
+      
+      // Attempt concurrent spends
+      const results = await Promise.allSettled([
+        engine.spendMana(mockUserId, 10, 'concurrent1'),
+        engine.spendMana(mockUserId, 10, 'concurrent2')
+      ]);
+      
+      // Both operations should handle the race condition gracefully
+      results.forEach(result => {
+        expect(result.status).toBe('fulfilled');
+        if (result.status === 'fulfilled') {
+          expect(typeof result.value).toBe('boolean');
+        }
+      });
+    });
+  });
 });

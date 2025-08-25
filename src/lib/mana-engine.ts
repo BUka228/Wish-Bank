@@ -2,10 +2,21 @@ import { db, DatabaseMonitor } from './db-pool';
 import { 
   ManaEngine as IManaEngine, 
   ManaTransaction, 
-  InsufficientManaError,
   ManaAuditLog,
   MANA_TEXTS 
 } from '../types/mana-system';
+import { 
+  InsufficientManaError,
+  ManaOperationError,
+  ManaValidationError,
+  DatabaseError,
+  logManaError,
+  getUserErrorMessage
+} from './mana-errors';
+import { manaValidator } from './mana-validation';
+import { manaTransactionManager } from './mana-transaction-manager';
+import ManaCache from './mana-cache';
+import { manaPerformanceMonitor, withManaPerformanceMonitoring } from './mana-performance-monitor';
 
 /**
  * ManaEngine - Основной движок системы Маны
@@ -31,35 +42,52 @@ export class ManaEngine implements IManaEngine {
    * Получить текущий баланс Маны пользователя
    */
   async getUserMana(userId: string): Promise<number> {
-    const endTimer = DatabaseMonitor.startQuery('getUserMana');
-    
-    try {
-      if (!userId) {
-        throw new Error('User ID is required');
-      }
-
-      const result = await db.execute<{ mana_balance: number }>`
-        SELECT mana_balance 
-        FROM users 
-        WHERE id = ${userId}
-      `;
-
-      if (result.length === 0) {
-        throw new Error(`User not found: ${userId}`);
-      }
-
-      const balance = result[0].mana_balance || 0;
+    return ManaCache.getUserBalance(userId, async () => {
+      const endTimer = DatabaseMonitor.startQuery('getUserMana');
+      const startTime = Date.now();
       
-      // Логирование для аудита
-      this.logAuditEvent(userId, 'earn', 0, 'balance_check', { balance });
-      
-      return balance;
-    } catch (error) {
-      console.error('Error getting user mana:', error);
-      throw error;
-    } finally {
-      endTimer();
-    }
+      try {
+        // Валидировать пользователя
+        const userValidation = manaValidator.validateUser(userId);
+        if (!userValidation.isValid) {
+          throw manaValidator.createValidationError(userValidation, { operation: 'getUserMana' });
+        }
+
+        const result = await db.execute<{ mana_balance: number }>`
+          SELECT mana_balance 
+          FROM users 
+          WHERE id = ${userId}
+        `;
+
+        if (result.length === 0) {
+          throw new ManaOperationError('getUserMana', userId, 'User not found');
+        }
+
+        const balance = result[0].mana_balance || 0;
+        
+        // Record database query performance
+        manaPerformanceMonitor.recordDatabaseQuery(
+          'getUserMana',
+          Date.now() - startTime,
+          true
+        );
+        
+        // Логирование для аудита
+        this.logAuditEvent(userId, 'earn', 0, 'balance_check', { balance });
+        
+        return balance;
+      } catch (error) {
+        manaPerformanceMonitor.recordDatabaseQuery(
+          'getUserMana',
+          Date.now() - startTime,
+          false
+        );
+        logManaError(error, { operation: 'getUserMana', userId });
+        throw error;
+      } finally {
+        endTimer();
+      }
+    });
   }
 
   /**
@@ -67,60 +95,68 @@ export class ManaEngine implements IManaEngine {
    */
   async addMana(userId: string, amount: number, reason: string): Promise<void> {
     const endTimer = DatabaseMonitor.startQuery('addMana');
+    const startTime = Date.now();
+    let success = false;
     
     try {
-      if (!userId) {
-        throw new Error('User ID is required');
-      }
+      // Получить текущий баланс для валидации
+      const currentBalance = await this.getUserMana(userId);
       
-      if (amount <= 0) {
-        throw new Error('Amount must be positive');
+      // Валидировать операцию
+      const validation = manaValidator.validateManaOperation(
+        userId, 
+        amount, 
+        currentBalance, 
+        'add', 
+        reason
+      );
+
+      if (!validation.isValid || !validation.canProceed) {
+        throw manaValidator.createValidationError(validation, { 
+          operation: 'addMana',
+          amount,
+          currentBalance 
+        });
       }
 
-      if (!reason) {
-        throw new Error('Reason is required');
-      }
-
-      await db.transaction(async (sql) => {
-        // Обновить баланс пользователя
-        const updateResult = await sql`
-          UPDATE users 
-          SET mana_balance = mana_balance + ${amount}
-          WHERE id = ${userId}
-          RETURNING mana_balance
-        `;
-
-        if (updateResult.length === 0) {
-          throw new Error(`User not found: ${userId}`);
-        }
-
-        const newBalance = updateResult[0].mana_balance;
-
-        // Создать запись транзакции
-        await this.createTransaction(sql, {
-          user_id: userId,
-          type: 'credit',
-          mana_amount: amount,
-          reason,
-          transaction_source: 'mana_engine',
-          metadata: { 
-            previous_balance: newBalance - amount,
-            new_balance: newBalance 
-          }
-        });
-
-        // Логирование для аудита
-        this.logAuditEvent(userId, 'earn', amount, reason, {
-          new_balance: newBalance,
-          previous_balance: newBalance - amount
-        });
-
-        console.log(`Added ${amount} mana to user ${userId}. New balance: ${newBalance}. Reason: ${reason}`);
+      // Выполнить операцию через менеджер транзакций
+      const result = await manaTransactionManager.executeAddManaWithRollback({
+        userId,
+        amount,
+        operation: 'add',
+        reason,
+        previousBalance: currentBalance,
+        newBalance: currentBalance + amount
       });
+
+      // Update cache with new balance
+      ManaCache.setUserBalance(userId, result.newBalance);
+      
+      // Invalidate related caches
+      ManaCache.onManaTransaction(userId, 'earn');
+
+      success = true;
+
+      // Логирование для аудита
+      this.logAuditEvent(userId, 'earn', amount, reason, {
+        new_balance: result.newBalance,
+        previous_balance: currentBalance,
+        transaction_id: result.transactionId
+      });
+
+      console.log(`Added ${amount} mana to user ${userId}. New balance: ${result.newBalance}. Reason: ${reason}`);
     } catch (error) {
-      console.error('Error adding mana:', error);
+      logManaError(error, { operation: 'addMana', userId, amount, reason });
       throw error;
     } finally {
+      // Record performance metrics
+      manaPerformanceMonitor.recordManaOperation(
+        'addMana',
+        userId,
+        Date.now() - startTime,
+        success,
+        { amount, reason }
+      );
       endTimer();
     }
   }
@@ -130,73 +166,80 @@ export class ManaEngine implements IManaEngine {
    */
   async spendMana(userId: string, amount: number, reason: string): Promise<boolean> {
     const endTimer = DatabaseMonitor.startQuery('spendMana');
+    const startTime = Date.now();
+    let success = false;
     
     try {
-      if (!userId) {
-        throw new Error('User ID is required');
-      }
-      
-      if (amount <= 0) {
-        throw new Error('Amount must be positive');
-      }
-
-      if (!reason) {
-        throw new Error('Reason is required');
-      }
-
-      // Проверить текущий баланс
+      // Получить текущий баланс
       const currentBalance = await this.getUserMana(userId);
       
-      if (currentBalance < amount) {
-        return false; // Return false instead of throwing error
+      // Валидировать операцию
+      const validation = manaValidator.validateManaOperation(
+        userId, 
+        amount, 
+        currentBalance, 
+        'spend', 
+        reason
+      );
+
+      if (!validation.isValid) {
+        throw manaValidator.createValidationError(validation, { 
+          operation: 'spendMana',
+          amount,
+          currentBalance 
+        });
       }
 
-      await db.transaction(async (sql) => {
-        // Списать Ману
-        const updateResult = await sql`
-          UPDATE users 
-          SET mana_balance = mana_balance - ${amount}
-          WHERE id = ${userId} AND mana_balance >= ${amount}
-          RETURNING mana_balance
-        `;
+      if (!validation.canProceed) {
+        // Недостаточно Маны - возвращаем false вместо исключения
+        console.warn(`Insufficient mana for user ${userId}: required ${amount}, available ${currentBalance}`);
+        return false;
+      }
 
-        if (updateResult.length === 0) {
-          throw new InsufficientManaError(amount, currentBalance);
-        }
-
-        const newBalance = updateResult[0].mana_balance;
-
-        // Создать запись транзакции
-        await this.createTransaction(sql, {
-          user_id: userId,
-          type: 'debit',
-          mana_amount: amount,
-          reason,
-          transaction_source: 'mana_engine',
-          metadata: { 
-            previous_balance: newBalance + amount,
-            new_balance: newBalance 
-          }
-        });
-
-        // Логирование для аудита
-        this.logAuditEvent(userId, 'spend', amount, reason, {
-          new_balance: newBalance,
-          previous_balance: newBalance + amount
-        });
-
-        console.log(`Spent ${amount} mana for user ${userId}. New balance: ${newBalance}. Reason: ${reason}`);
+      // Выполнить операцию через менеджер транзакций
+      const result = await manaTransactionManager.executeSpendManaWithRollback({
+        userId,
+        amount,
+        operation: 'spend',
+        reason,
+        previousBalance: currentBalance,
+        newBalance: currentBalance - amount
       });
 
+      // Update cache with new balance
+      ManaCache.setUserBalance(userId, result.newBalance);
+      
+      // Invalidate related caches
+      ManaCache.onManaTransaction(userId, 'spend');
+
+      success = true;
+
+      // Логирование для аудита
+      this.logAuditEvent(userId, 'spend', amount, reason, {
+        new_balance: result.newBalance,
+        previous_balance: currentBalance,
+        transaction_id: result.transactionId
+      });
+
+      console.log(`Spent ${amount} mana for user ${userId}. New balance: ${result.newBalance}. Reason: ${reason}`);
       return true;
     } catch (error) {
       if (error instanceof InsufficientManaError) {
-        console.warn(`Insufficient mana for user ${userId}: required ${amount}, available ${error.message}`);
+        console.warn(`Insufficient mana for user ${userId}: ${getUserErrorMessage(error)}`);
         return false;
       }
-      console.error('Error spending mana:', error);
+      
+      logManaError(error, { operation: 'spendMana', userId, amount, reason });
       throw error;
     } finally {
+      // Record performance metrics
+      manaPerformanceMonitor.recordManaOperation(
+        'spendMana',
+        userId,
+        Date.now() - startTime,
+        success,
+        { amount, reason }
+      );
       endTimer();
     }
   }

@@ -12,6 +12,8 @@ import {
   getUserByTelegramId,
   addTransaction
 } from './db';
+import { manaEngine } from './mana-engine';
+import { MANA_TEXTS } from './mana-localization';
 
 /**
  * Event Generator - Manages random event lifecycle and generation
@@ -19,90 +21,90 @@ import {
  */
 export class EventGenerator {
   
-  // Pool of random events with Russian descriptions
+  // Pool of random events with Russian descriptions (updated for Mana system)
   private eventPool = [
     {
       title: 'Неожиданный сюрприз',
       description: 'Сделайте что-то приятное для партнера без предупреждения',
       category: 'romance',
-      baseReward: 2,
+      eventType: 'special',
       baseExperience: 20
     },
     {
       title: 'Кулинарный эксперимент',
       description: 'Приготовьте новое блюдо, которое вы никогда не готовили',
       category: 'food',
-      baseReward: 1,
+      eventType: 'daily',
       baseExperience: 15
     },
     {
       title: 'Спонтанная прогулка',
       description: 'Предложите партнеру прогуляться в новом месте',
       category: 'activity',
-      baseReward: 1,
+      eventType: 'daily',
       baseExperience: 15
     },
     {
       title: 'Комплимент дня',
       description: 'Сделайте искренний комплимент партнеру о том, что вы в нем цените',
       category: 'romance',
-      baseReward: 1,
+      eventType: 'daily',
       baseExperience: 10
     },
     {
       title: 'Помощь по дому',
       description: 'Сделайте домашнее дело, которое обычно делает партнер',
       category: 'home',
-      baseReward: 2,
+      eventType: 'daily',
       baseExperience: 15
     },
     {
       title: 'Творческий момент',
       description: 'Создайте что-то своими руками для партнера (рисунок, поделка, письмо)',
       category: 'creative',
-      baseReward: 3,
+      eventType: 'special',
       baseExperience: 25
     },
     {
       title: 'Массаж-сюрприз',
       description: 'Предложите партнеру расслабляющий массаж',
       category: 'romance',
-      baseReward: 2,
+      eventType: 'special',
       baseExperience: 20
     },
     {
       title: 'Планирование будущего',
       description: 'Обсудите с партнером планы на ближайший месяц',
       category: 'communication',
-      baseReward: 1,
+      eventType: 'weekly',
       baseExperience: 15
     },
     {
       title: 'Фото-момент',
       description: 'Сделайте красивое фото вместе в необычном месте',
       category: 'memory',
-      baseReward: 1,
+      eventType: 'daily',
       baseExperience: 10
     },
     {
       title: 'Музыкальный вечер',
       description: 'Включите любимую музыку партнера и потанцуйте вместе',
       category: 'entertainment',
-      baseReward: 2,
+      eventType: 'special',
       baseExperience: 20
     },
     {
       title: 'Забота о здоровье',
       description: 'Предложите партнеру вместе заняться спортом или прогуляться',
       category: 'health',
-      baseReward: 2,
+      eventType: 'weekly',
       baseExperience: 15
     },
     {
       title: 'Воспоминания',
       description: 'Расскажите партнеру о любимом воспоминании с ним',
       category: 'communication',
-      baseReward: 1,
+      eventType: 'daily',
       baseExperience: 15
     }
   ];
@@ -298,19 +300,19 @@ export class EventGenerator {
   }
 
   /**
-   * Calculates event rewards based on user activity and event type
+   * Calculates event rewards based on user activity and event type (now using Mana system)
    */
   private async calculateEventRewards(
     userId: string,
     eventTemplate: typeof this.eventPool[0]
   ): Promise<{ rewardAmount: number; experienceReward: number; rewardType: string }> {
-    // Base rewards from template
-    let rewardAmount = eventTemplate.baseReward;
+    // Use ManaEngine to calculate Mana rewards based on event type
+    const manaReward = manaEngine.calculateManaReward('', eventTemplate.eventType);
+    
     let experienceReward = eventTemplate.baseExperience;
     
-    // Default reward type (could be randomized or based on user preferences)
-    const rewardTypes = ['green', 'blue', 'red'];
-    const rewardType = rewardTypes[Math.floor(Math.random() * rewardTypes.length)];
+    // Mana is now the universal reward type
+    const rewardType = 'mana';
 
     // TODO: Apply user-specific multipliers based on:
     // - User rank/level
@@ -318,27 +320,23 @@ export class EventGenerator {
     // - Event completion history
     // - Partner relationship metrics
 
-    // For now, add some randomization
+    // For now, add some randomization to experience
     const randomMultiplier = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-    rewardAmount = Math.max(1, Math.round(rewardAmount * randomMultiplier));
     experienceReward = Math.round(experienceReward * randomMultiplier);
 
-    return { rewardAmount, experienceReward, rewardType };
+    return { rewardAmount: manaReward, experienceReward, rewardType };
   }
 
   /**
-   * Grants rewards to event owner upon completion
+   * Grants rewards to event owner upon completion (now using Mana system)
    */
   private async grantEventRewards(event: RandomEvent): Promise<boolean> {
     try {
-      // Grant wish balance reward
-      await addTransaction(
+      // Grant Mana reward instead of old currency system
+      await manaEngine.addMana(
         event.user_id,
-        'credit',
-        event.reward_type as 'green' | 'blue' | 'red',
         event.reward_amount,
-        `Random event completion: ${event.title}`,
-        event.id
+        `Завершение события: ${event.title}`
       );
 
       // Grant experience points (would integrate with rank system)
@@ -424,7 +422,7 @@ export class EventGenerator {
   }
 
   /**
-   * Gets notification message based on type and event
+   * Gets notification message based on type and event (now with Mana system)
    */
   private getEventNotificationMessage(
     type: 'event_available' | 'event_completed' | 'event_expired',
@@ -432,9 +430,9 @@ export class EventGenerator {
   ): string {
     switch (type) {
       case 'event_available':
-        return `У вас новое событие: "${event.title}". Награда: ${event.reward_amount} ${event.reward_type}. Истекает через 24 часа.`;
+        return `У вас новое событие: "${event.title}". Награда: ${event.reward_amount} ${MANA_TEXTS.mana}. Истекает через 24 часа.`;
       case 'event_completed':
-        return `Событие "${event.title}" выполнено! Награда начислена: ${event.reward_amount} ${event.reward_type} + ${event.experience_reward} опыта.`;
+        return `Событие "${event.title}" выполнено! ${MANA_TEXTS.success.manaReceived}: ${event.reward_amount} ${MANA_TEXTS.mana} + ${event.experience_reward} опыта.`;
       case 'event_expired':
         return `Событие "${event.title}" истекло. Новое событие будет сгенерировано в ближайшее время.`;
       default:

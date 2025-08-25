@@ -99,27 +99,21 @@ export interface EnhancementResponse {
   remaining_mana: number;
 }
 
-// Error Types
-export class InsufficientManaError extends Error {
-  constructor(required: number, available: number) {
-    super(`Недостаточно Маны. Требуется: ${required}, доступно: ${available}`);
-    this.name = 'InsufficientManaError';
-  }
-}
-
-export class EnhancementError extends Error {
-  constructor(message: string, wishId: string) {
-    super(`Ошибка усиления желания ${wishId}: ${message}`);
-    this.name = 'EnhancementError';
-  }
-}
-
-export class MigrationError extends Error {
-  constructor(userId: string, step: string) {
-    super(`Ошибка миграции пользователя ${userId} на этапе: ${step}`);
-    this.name = 'MigrationError';
-  }
-}
+// Error Types - Import from dedicated error module
+export type { 
+  InsufficientManaError,
+  EnhancementError,
+  MigrationError,
+  ManaSystemError,
+  ManaValidationError,
+  ManaOperationError,
+  EnhancementValidationError,
+  EnhancementPermissionError,
+  MaxEnhancementLevelError,
+  TransactionError,
+  SystemConfigurationError,
+  DatabaseError
+} from '../lib/mana-errors';
 
 // Validation Interfaces
 export interface ManaValidationResult {

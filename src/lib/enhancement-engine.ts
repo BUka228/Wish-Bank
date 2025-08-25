@@ -5,12 +5,24 @@ import {
   Enhancement,
   EnhancementType,
   AuraType,
-  EnhancementError,
-  InsufficientManaError,
   EnhancementValidationResult,
   DEFAULT_ENHANCEMENT_COSTS,
   MANA_TEXTS
 } from '../types/mana-system';
+import { 
+  EnhancementError,
+  EnhancementValidationError,
+  EnhancementPermissionError,
+  MaxEnhancementLevelError,
+  InsufficientManaError,
+  DatabaseError,
+  logManaError,
+  getUserErrorMessage
+} from './mana-errors';
+import { manaValidator } from './mana-validation';
+import { manaTransactionManager } from './mana-transaction-manager';
+import ManaCache from './mana-cache';
+import { manaPerformanceMonitor } from './mana-performance-monitor';
 
 /**
  * EnhancementEngine - Система усилений желаний
@@ -36,109 +48,81 @@ export class EnhancementEngine implements IEnhancementEngine {
    */
   async applyPriorityEnhancement(wishId: string, level: number): Promise<Enhancement> {
     const endTimer = DatabaseMonitor.startQuery('applyPriorityEnhancement');
+    const startTime = Date.now();
+    let success = false;
+    let wishInfo: { author_id: string; status: string } | null = null;
     
     try {
-      if (!wishId) {
-        throw new EnhancementError('Wish ID is required', wishId);
-      }
-
-      if (level < 1 || level > 5) {
-        throw new EnhancementError('Priority level must be between 1 and 5', wishId);
-      }
-
       // Получить информацию о желании и его владельце
-      const wishInfo = await this.getWishInfo(wishId);
+      wishInfo = await this.getWishInfo(wishId);
       if (!wishInfo) {
-        throw new EnhancementError('Wish not found', wishId);
+        throw new EnhancementError('Wish not found', wishId, 'priority');
       }
-
-      // Проверить права пользователя на усиление желания
-      await this.validateUserPermissions(wishInfo.author_id, wishId);
 
       // Получить текущий уровень приоритета
       const currentEnhancement = await this.getCurrentPriorityEnhancement(wishId);
       const currentLevel = currentEnhancement?.level || 0;
 
-      if (level <= currentLevel) {
-        throw new EnhancementError(`Priority level ${level} is not higher than current level ${currentLevel}`, wishId);
-      }
-
-      // Рассчитать стоимость усиления
-      const cost = this.calculateEnhancementCost('priority', level);
-
-      // Проверить достаточность Маны
+      // Получить баланс пользователя
       const userMana = await manaEngine.getUserMana(wishInfo.author_id);
-      if (userMana < cost) {
-        throw new InsufficientManaError(cost, userMana);
+
+      // Валидировать усиление
+      const validation = manaValidator.validatePriorityEnhancement(
+        wishId,
+        wishInfo.author_id,
+        level,
+        currentLevel,
+        userMana,
+        wishInfo.author_id,
+        wishInfo.status
+      );
+
+      if (!validation.isValid || !validation.canApply) {
+        throw manaValidator.createEnhancementValidationError(
+          wishId,
+          'priority',
+          validation,
+          { level, currentLevel, userMana }
+        );
       }
 
-      // Выполнить усиление в транзакции
-      const enhancement = await db.transaction(async (sql) => {
-        // Списать Ману
-        const spendSuccess = await manaEngine.spendMana(
-          wishInfo.author_id, 
-          cost, 
-          `priority_enhancement_level_${level}`
-        );
-
-        if (!spendSuccess) {
-          throw new InsufficientManaError(cost, userMana);
-        }
-
-        // Удалить предыдущее усиление приоритета (если есть)
-        if (currentEnhancement) {
-          await sql`
-            DELETE FROM wish_enhancements 
-            WHERE wish_id = ${wishId} AND type = 'priority'
-          `;
-        }
-
-        // Создать новое усиление
-        const enhancementResult = await sql<Enhancement>`
-          INSERT INTO wish_enhancements (
-            wish_id, 
-            type, 
-            level, 
-            cost, 
-            applied_by,
-            metadata
-          ) VALUES (
-            ${wishId},
-            'priority',
-            ${level},
-            ${cost},
-            ${wishInfo.author_id},
-            ${JSON.stringify({ 
-              previous_level: currentLevel,
-              upgrade_cost: cost,
-              applied_at: new Date().toISOString()
-            })}
-          )
-          RETURNING *
-        `;
-
-        // Обновить приоритет желания
-        await sql`
-          UPDATE wishes 
-          SET priority = ${level}
-          WHERE id = ${wishId}
-        `;
-
-        const newEnhancement = enhancementResult[0];
-        
-        console.log(`Applied priority enhancement level ${level} to wish ${wishId} for user ${wishInfo.author_id}. Cost: ${cost} mana`);
-        
-        return {
-          ...newEnhancement,
-          applied_at: new Date(newEnhancement.applied_at)
-        };
+      // Выполнить усиление через менеджер транзакций
+      const result = await manaTransactionManager.executeEnhancementWithRollback({
+        wishId,
+        userId: wishInfo.author_id,
+        enhancementType: 'priority',
+        level,
+        cost: validation.cost,
+        previousLevel: currentLevel
       });
 
-      return enhancement;
+      // Invalidate related caches
+      ManaCache.onWishEnhancement(wishId, wishInfo.author_id, 'priority');
+
+      success = true;
+
+      console.log(`Applied priority enhancement level ${level} to wish ${wishId} for user ${wishInfo.author_id}. Cost: ${validation.cost} mana`);
+      
+      return result.enhancement;
     } catch (error) {
-      console.error('Error applying priority enhancement:', error);
+      logManaError(error, { 
+        operation: 'applyPriorityEnhancement', 
+        wishId, 
+        level,
+        enhancementType: 'priority'
+      });
       throw error;
     } finally {
+      // Record performance metrics
+      manaPerformanceMonitor.recordEnhancementOperation(
+        'applyPriority',
+        wishId,
+        wishInfo?.author_id || 'unknown',
+        Date.now() - startTime,
+        success,
+        'priority',
+        success ? this.calculateEnhancementCost('priority', level) : undefined
+      );
       endTimer();
     }
   }
@@ -150,96 +134,58 @@ export class EnhancementEngine implements IEnhancementEngine {
     const endTimer = DatabaseMonitor.startQuery('applyAuraEnhancement');
     
     try {
-      if (!wishId) {
-        throw new EnhancementError('Wish ID is required', wishId);
-      }
-
-      if (!this.isValidAuraType(auraType)) {
-        throw new EnhancementError(`Invalid aura type: ${auraType}`, wishId);
-      }
-
       // Получить информацию о желании и его владельце
       const wishInfo = await this.getWishInfo(wishId);
       if (!wishInfo) {
-        throw new EnhancementError('Wish not found', wishId);
+        throw new EnhancementError('Wish not found', wishId, 'aura');
       }
-
-      // Проверить права пользователя на усиление желания
-      await this.validateUserPermissions(wishInfo.author_id, wishId);
 
       // Проверить, нет ли уже ауры на этом желании
       const existingAura = await this.getCurrentAuraEnhancement(wishId);
-      if (existingAura) {
-        throw new EnhancementError('Wish already has an aura enhancement', wishId);
-      }
-
-      // Рассчитать стоимость усиления
-      const cost = this.calculateEnhancementCost('aura', 1);
-
-      // Проверить достаточность Маны
+      
+      // Получить баланс пользователя
       const userMana = await manaEngine.getUserMana(wishInfo.author_id);
-      if (userMana < cost) {
-        throw new InsufficientManaError(cost, userMana);
+
+      // Валидировать усиление
+      const validation = manaValidator.validateAuraEnhancement(
+        wishId,
+        wishInfo.author_id,
+        auraType,
+        userMana,
+        wishInfo.author_id,
+        wishInfo.status,
+        !!existingAura
+      );
+
+      if (!validation.isValid || !validation.canApply) {
+        throw manaValidator.createEnhancementValidationError(
+          wishId,
+          'aura',
+          validation,
+          { auraType, userMana, hasExistingAura: !!existingAura }
+        );
       }
 
-      // Выполнить усиление в транзакции
-      const enhancement = await db.transaction(async (sql) => {
-        // Списать Ману
-        const spendSuccess = await manaEngine.spendMana(
-          wishInfo.author_id, 
-          cost, 
-          `aura_enhancement_${auraType}`
-        );
-
-        if (!spendSuccess) {
-          throw new InsufficientManaError(cost, userMana);
-        }
-
-        // Создать усиление ауры
-        const enhancementResult = await sql<Enhancement>`
-          INSERT INTO wish_enhancements (
-            wish_id, 
-            type, 
-            level,
-            aura_type,
-            cost, 
-            applied_by,
-            metadata
-          ) VALUES (
-            ${wishId},
-            'aura',
-            1,
-            ${auraType},
-            ${cost},
-            ${wishInfo.author_id},
-            ${JSON.stringify({ 
-              aura_type: auraType,
-              applied_at: new Date().toISOString()
-            })}
-          )
-          RETURNING *
-        `;
-
-        // Обновить ауру желания
-        await sql`
-          UPDATE wishes 
-          SET aura = ${auraType}
-          WHERE id = ${wishId}
-        `;
-
-        const newEnhancement = enhancementResult[0];
-        
-        console.log(`Applied aura enhancement "${auraType}" to wish ${wishId} for user ${wishInfo.author_id}. Cost: ${cost} mana`);
-        
-        return {
-          ...newEnhancement,
-          applied_at: new Date(newEnhancement.applied_at)
-        };
+      // Выполнить усиление через менеджер транзакций
+      const result = await manaTransactionManager.executeEnhancementWithRollback({
+        wishId,
+        userId: wishInfo.author_id,
+        enhancementType: 'aura',
+        auraType,
+        cost: validation.cost,
+        previousAura: existingAura?.aura_type
       });
 
-      return enhancement;
+      console.log(`Applied aura enhancement "${auraType}" to wish ${wishId} for user ${wishInfo.author_id}. Cost: ${validation.cost} mana`);
+      
+      return result.enhancement;
     } catch (error) {
-      console.error('Error applying aura enhancement:', error);
+      logManaError(error, { 
+        operation: 'applyAuraEnhancement', 
+        wishId, 
+        auraType,
+        enhancementType: 'aura'
+      });
       throw error;
     } finally {
       endTimer();

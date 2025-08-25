@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Quest is not active' });
     }
 
-    // Complete the quest
+    // Complete the quest (now handles Mana rewards internally)
     const completedQuest = await questEngine.completeQuest(String(questId), user.id);
 
     // Calculate experience reward
@@ -67,18 +67,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rank: promotionResult.newRank.name
     });
 
-    // Award Mana based on quest difficulty
-    const manaReward = manaEngine.calculateManaReward(
-      completedQuest.quest.difficulty || 'medium', 
-      ''
-    );
-    const finalManaReward = Math.floor(manaReward * multiplier);
-    
-    await manaEngine.addMana(
-      user.id, 
-      finalManaReward, 
-      `quest_completion_${completedQuest.quest.id}`
-    );
+    // Mana reward is now handled by QuestEngine.grantQuestRewards()
+    // Get the final mana reward amount from the quest
+    const finalManaReward = completedQuest.quest.reward_amount;
 
     const response: any = {
       quest: completedQuest,

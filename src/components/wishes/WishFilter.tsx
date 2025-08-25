@@ -25,9 +25,11 @@ const typeOptions = [
 
 const priorityOptions = [
   { value: '', label: 'Любой приоритет' },
-  { value: '1', label: '⭐ Низкий' },
-  { value: '2', label: '⭐⭐ Средний' },
-  { value: '3', label: '⭐⭐⭐ Высокий' }
+  { value: '1', label: '🔥 Приоритет 1' },
+  { value: '2', label: '🔥🔥 Приоритет 2' },
+  { value: '3', label: '🔥🔥🔥 Приоритет 3' },
+  { value: '4', label: '🔥🔥🔥🔥 Приоритет 4' },
+  { value: '5', label: '🔥🔥🔥🔥🔥 Приоритет 5' }
 ];
 
 const defaultCategories = [
@@ -189,10 +191,10 @@ export default function WishFilter({
             🟢 Активные
           </button>
           <button
-            onClick={() => onFilterChange({ priority: 3 })}
+            onClick={() => onFilterChange({ priority: 5 })}
             className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
           >
-            ⭐⭐⭐ Высокий приоритет
+            🔥🔥🔥🔥🔥 Максимальный приоритет
           </button>
           <button
             onClick={() => onFilterChange({ type: 'red' })}

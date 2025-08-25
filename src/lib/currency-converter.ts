@@ -3,7 +3,8 @@
 
 import { sql } from './db-pool';
 import { User } from '../types/quest-economy';
-import { MigrationError, LEGACY_CONVERSION_RATES } from '../types/mana-system';
+import { LEGACY_CONVERSION_RATES } from '../types/mana-system';
+import { MigrationError } from './mana-errors';
 
 export class CurrencyConverter {
   /**
@@ -42,7 +43,7 @@ export class CurrencyConverter {
       const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
 
       if (userResult.length === 0) {
-        throw new MigrationError(userId, 'user_not_found');
+        throw new MigrationError(userId, 'user_not_found', 'User not found in database');
       }
 
       const user = userResult[0] as User;
@@ -98,7 +99,7 @@ export class CurrencyConverter {
       }
       
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new MigrationError(userId, `database_error: ${errorMessage}`);
+      throw new MigrationError(userId, 'database_error', errorMessage);
     }
   }
 
@@ -115,7 +116,7 @@ export class CurrencyConverter {
       const userResult = await sql`SELECT * FROM users WHERE id = ${userId}`;
 
       if (userResult.length === 0) {
-        throw new MigrationError(userId, 'user_not_found_for_rollback');
+        throw new MigrationError(userId, 'user_not_found_for_rollback', 'User not found for rollback operation');
       }
 
       const user = userResult[0] as User;
@@ -138,7 +139,7 @@ export class CurrencyConverter {
       `;
 
       if (migrationTxResult.length === 0) {
-        throw new MigrationError(userId, 'migration_transaction_not_found');
+        throw new MigrationError(userId, 'migration_transaction_not_found', 'Migration transaction not found in database');
       }
 
       // Step 4: Calculate original balances from the migration transaction
@@ -184,7 +185,7 @@ export class CurrencyConverter {
       }
       
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new MigrationError(userId, `rollback_error: ${errorMessage}`);
+      throw new MigrationError(userId, 'rollback_error', errorMessage);
     }
   }
 

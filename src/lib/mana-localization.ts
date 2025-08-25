@@ -47,7 +47,9 @@ export const MANA_TEXTS = {
     manaSpent: 'Мана потрачена',
     enhancementApplied: 'Усиление применено',
     wishCreated: 'Желание создано',
-    manaTransferred: 'Мана переведена'
+    manaTransferred: 'Мана переведена',
+    questCompleted: 'Квест выполнен',
+    eventCompleted: 'Событие выполнено'
   },
   
   // Описания усилений
@@ -73,6 +75,16 @@ export const MANA_TEXTS = {
     priorityLevels: 'Уровни приоритета: 1-5, стоимость увеличивается',
     auraEffects: 'Ауры добавляют визуальные эффекты желаниям',
     freeCreation: 'Создание желаний бесплатно, платите только за усиления'
+  },
+
+  // Уведомления о квестах и событиях
+  notifications: {
+    questAssigned: 'Новый квест назначен',
+    questCompleted: 'Квест выполнен',
+    questExpired: 'Квест просрочен',
+    eventAvailable: 'Новое случайное событие!',
+    eventCompleted: 'Событие выполнено!',
+    eventExpired: 'Событие истекло'
   },
   
   // Форматирование чисел
@@ -110,4 +122,17 @@ export const getPriorityDescription = (level: number): string => {
 export const getAuraDescription = (auraType: string): string => {
   const descriptions = MANA_TEXTS.enhancementDescriptions.aura;
   return descriptions[auraType as keyof typeof descriptions] || `Аура типа ${auraType}`;
+};
+
+// Utility functions for quest and event notifications
+export const formatManaEarned = (amount: number, source: string): string => {
+  return `Получено ${amount} ${MANA_TEXTS.mana} за ${source}`;
+};
+
+export const formatQuestReward = (amount: number): string => {
+  return `Награда: ${amount} ${MANA_TEXTS.mana}`;
+};
+
+export const formatEventReward = (amount: number, experience: number): string => {
+  return `Награда: ${amount} ${MANA_TEXTS.mana} + ${experience} опыта`;
 };
