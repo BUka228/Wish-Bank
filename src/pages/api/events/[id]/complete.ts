@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { EventGenerator } from '../../../../lib/event-generator';
 import { RankCalculator } from '../../../../lib/rank-calculator';
+import { manaEngine } from '../../../../lib/mana-engine';
 import { getUserFromRequest } from '../../../../lib/telegram-auth';
 import { updateUser } from '../../../../lib/db';
 
@@ -54,20 +55,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rank: promotionResult.newRank.id
     });
 
-    // Award coins from event reward
-    let coinsAwarded = 0;
-    if (completedEvent.reward_amount > 0) {
-      coinsAwarded = Math.floor(completedEvent.reward_amount * multiplier);
-      await updateUser(user.id, {
-        green_balance: (user.green_balance || 0) + coinsAwarded
-      });
-    }
+    // Award Mana based on event reward type
+    const manaReward = manaEngine.calculateManaReward(
+      '', 
+      completedEvent.reward_type || 'daily'
+    );
+    const finalManaReward = Math.floor(manaReward * multiplier);
+    
+    await manaEngine.addMana(
+      user.id, 
+      finalManaReward, 
+      `event_completion_${completedEvent.id}`
+    );
 
     const response: any = {
       event: completedEvent,
       rewards: {
         experience: experienceGained,
-        coins: coinsAwarded,
+        mana: finalManaReward,
         eventRewards: result.rewardsGranted
       }
     };

@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { QuestEngine } from '../../../../lib/quest-engine';
 import { RankCalculator } from '../../../../lib/rank-calculator';
 import { EconomyEngine } from '../../../../lib/economy-engine';
+import { manaEngine } from '../../../../lib/mana-engine';
 import { getUserFromRequest } from '../../../../lib/telegram-auth';
 import { updateUser, getQuestById } from '../../../../lib/db';
 
@@ -66,19 +67,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rank: promotionResult.newRank.name
     });
 
-    // Award coins if quest has reward
-    let coinsAwarded = 0;
-    if (completedQuest.quest.reward_amount > 0) {
-      coinsAwarded = Math.floor(completedQuest.quest.reward_amount * multiplier);
-      // Coins are handled by the quest engine through transactions
-      // No need to update user balance directly here
-    }
+    // Award Mana based on quest difficulty
+    const manaReward = manaEngine.calculateManaReward(
+      completedQuest.quest.difficulty || 'medium', 
+      ''
+    );
+    const finalManaReward = Math.floor(manaReward * multiplier);
+    
+    await manaEngine.addMana(
+      user.id, 
+      finalManaReward, 
+      `quest_completion_${completedQuest.quest.id}`
+    );
 
     const response: any = {
       quest: completedQuest,
       rewards: {
         experience: experienceGained,
-        coins: coinsAwarded
+        mana: finalManaReward
       }
     };
 
