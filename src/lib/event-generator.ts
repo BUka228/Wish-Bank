@@ -253,9 +253,38 @@ export class EventGenerator {
     if (existingEvent) {
       // Mark as expired (would need database function)
       console.log(`Replacing existing event ${existingEvent.id} for user ${userId}`);
+      // TODO: Implement markEventAsExpired function in db.ts
+      // For now, we'll bypass the check in generateRandomEvent
     }
 
-    return await this.generateRandomEvent(userId);
+    // Select random event from pool
+    const eventTemplate = this.selectRandomEventTemplate(userId);
+    
+    // Calculate rewards based on user activity and preferences
+    const { rewardAmount, experienceReward, rewardType } = await this.calculateEventRewards(
+      userId,
+      eventTemplate
+    );
+
+    // Set expiration time (24 hours from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    // Create the event directly, bypassing the existing event check
+    const event = await dbCreateRandomEvent(
+      userId,
+      eventTemplate.title,
+      eventTemplate.description,
+      rewardType,
+      rewardAmount,
+      experienceReward,
+      expiresAt
+    );
+
+    // Send notification to user
+    await this.sendEventNotification(event, 'event_available');
+
+    return event;
   }
 
   /**
