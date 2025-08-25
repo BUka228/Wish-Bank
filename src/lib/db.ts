@@ -375,6 +375,27 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
+// Helper function to get internal UUID by Telegram ID
+export async function getUserUuidByTelegramId(telegramId: string): Promise<string | null> {
+  try {
+    const user = await getUserByTelegramId(telegramId);
+    return user?.id || null;
+  } catch (error) {
+    console.error('Error getting user UUID by telegram ID:', error);
+    return null;
+  }
+}
+
+// Universal helper to resolve user ID (handles both UUID and Telegram ID)
+export async function resolveUserId(userId: string): Promise<string | null> {
+  // If it's a numeric string, treat as Telegram ID
+  if (/^\d+$/.test(userId)) {
+    return await getUserUuidByTelegramId(userId);
+  }
+  // Otherwise, assume it's already a UUID
+  return userId;
+}
+
 export async function getAllUsers(): Promise<User[]> {
   const result = await sql`SELECT * FROM users ORDER BY created_at ASC`;
   return result as User[];
@@ -662,15 +683,20 @@ export async function createQuest(
 }
 
 export async function getQuestsByUser(userId: string, status?: string): Promise<Quest[]> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    return []; // User not found
+  }
+
   const result = status 
     ? await sql`
         SELECT * FROM quests 
-        WHERE (author_id = ${userId} OR assignee_id = ${userId}) AND status = ${status}
+        WHERE (author_id = ${internalUserId} OR assignee_id = ${internalUserId}) AND status = ${status}
         ORDER BY created_at DESC
       `
     : await sql`
         SELECT * FROM quests 
-        WHERE (author_id = ${userId} OR assignee_id = ${userId})
+        WHERE (author_id = ${internalUserId} OR assignee_id = ${internalUserId})
         ORDER BY created_at DESC
       `;
   return result as Quest[];
@@ -789,18 +815,28 @@ export async function createRandomEvent(
   experienceReward: number = 15,
   expiresAt: Date
 ): Promise<RandomEvent> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
   const result = await sql`
     INSERT INTO random_events (user_id, title, description, reward_type, reward_amount, experience_reward, expires_at)
-    VALUES (${userId}, ${title}, ${description}, ${rewardType}, ${rewardAmount}, ${experienceReward}, ${expiresAt})
+    VALUES (${internalUserId}, ${title}, ${description}, ${rewardType}, ${rewardAmount}, ${experienceReward}, ${expiresAt})
     RETURNING *
   `;
   return result[0] as RandomEvent;
 }
 
 export async function getCurrentEvent(userId: string): Promise<RandomEvent | null> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    return null; // User not found
+  }
+
   const result = await sql`
     SELECT * FROM random_events 
-    WHERE user_id = ${userId} AND status = 'active'
+    WHERE user_id = ${internalUserId} AND status = 'active'
     ORDER BY created_at DESC
     LIMIT 1
   `;
@@ -859,9 +895,14 @@ export async function markEventsAsExpired(): Promise<number> {
 }
 
 export async function getUserEventHistory(userId: string, limit: number = 50): Promise<RandomEvent[]> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    return [];
+  }
+
   const result = await sql`
     SELECT * FROM random_events 
-    WHERE user_id = ${userId}
+    WHERE user_id = ${internalUserId}
     ORDER BY created_at DESC
     LIMIT ${limit}
   `;
@@ -920,7 +961,12 @@ export async function updateEconomySetting(key: string, value: any, description?
 
 // Enhanced Rank System Functions
 export async function calculateUserRank(userId: string): Promise<{ currentRank: Rank | null; nextRank: Rank | null; experienceToNext: number }> {
-  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
+  const user = await sql`SELECT * FROM users WHERE id = ${internalUserId}`;
   if (!user[0]) {
     throw new Error('User not found');
   }
@@ -1069,25 +1115,30 @@ export async function getUserStats(userId: string): Promise<{
   current_rank: string;
   completion_rate: number;
 }> {
-  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
+  const user = await sql`SELECT * FROM users WHERE id = ${internalUserId}`;
   if (!user[0]) {
     throw new Error('User not found');
   }
 
   const questsCreated = await sql`
-    SELECT COUNT(*) as count FROM quests WHERE author_id = ${userId}
+    SELECT COUNT(*) as count FROM quests WHERE author_id = ${internalUserId}
   `;
 
   const questsCompleted = await sql`
-    SELECT COUNT(*) as count FROM quests WHERE assignee_id = ${userId} AND status = 'completed'
+    SELECT COUNT(*) as count FROM quests WHERE assignee_id = ${internalUserId} AND status = 'completed'
   `;
 
   const eventsCompleted = await sql`
-    SELECT COUNT(*) as count FROM random_events WHERE completed_by = ${userId}
+    SELECT COUNT(*) as count FROM random_events WHERE completed_by = ${internalUserId}
   `;
 
   const wishesGifted = await sql`
-    SELECT COUNT(*) as count FROM wishes WHERE author_id = ${userId} AND is_gift = true
+    SELECT COUNT(*) as count FROM wishes WHERE author_id = ${internalUserId} AND is_gift = true
   `;
 
   const totalQuests = parseInt(questsCreated[0].count);
@@ -1107,83 +1158,103 @@ export async function getUserStats(userId: string): Promise<{
 
 // Enhanced User Functions
 export async function updateUserExperience(userId: string, experienceGained: number): Promise<User> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
   const result = await sql`
     UPDATE users 
     SET experience_points = experience_points + ${experienceGained}, updated_at = NOW()
-    WHERE id = ${userId}
+    WHERE id = ${internalUserId}
     RETURNING *
   `;
   return result[0] as User;
 }
 
 export async function updateUserRank(userId: string, newRank: string): Promise<User> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
   const result = await sql`
     UPDATE users 
     SET rank = ${newRank}, updated_at = NOW()
-    WHERE id = ${userId}
+    WHERE id = ${internalUserId}
     RETURNING *
   `;
   return result[0] as User;
 }
 
 export async function updateUserQuotas(userId: string, dailyUsed?: number, weeklyUsed?: number, monthlyUsed?: number): Promise<User> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
   // Простая реализация без динамических запросов
   if (dailyUsed !== undefined) {
     await sql`
       UPDATE users 
       SET daily_quota_used = daily_quota_used + ${dailyUsed}, updated_at = NOW()
-      WHERE id = ${userId}
+      WHERE id = ${internalUserId}
     `;
   }
   if (weeklyUsed !== undefined) {
     await sql`
       UPDATE users 
       SET weekly_quota_used = weekly_quota_used + ${weeklyUsed}, updated_at = NOW()
-      WHERE id = ${userId}
+      WHERE id = ${internalUserId}
     `;
   }
   if (monthlyUsed !== undefined) {
     await sql`
       UPDATE users 
       SET monthly_quota_used = monthly_quota_used + ${monthlyUsed}, updated_at = NOW()
-      WHERE id = ${userId}
+      WHERE id = ${internalUserId}
     `;
   }
   
   const result = await sql`
-    SELECT * FROM users WHERE id = ${userId}
+    SELECT * FROM users WHERE id = ${internalUserId}
   `;
   return result[0] as User;
 }
 
 export async function resetUserQuotas(userId: string, resetDaily: boolean = false, resetWeekly: boolean = false, resetMonthly: boolean = false): Promise<User> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
   // Простая реализация с отдельными запросами
   if (resetDaily) {
     await sql`
       UPDATE users 
       SET daily_quota_used = 0, updated_at = NOW()
-      WHERE id = ${userId}
+      WHERE id = ${internalUserId}
     `;
   }
   if (resetWeekly) {
     await sql`
       UPDATE users 
       SET weekly_quota_used = 0, updated_at = NOW()
-      WHERE id = ${userId}
+      WHERE id = ${internalUserId}
     `;
   }
   if (resetMonthly) {
     await sql`
       UPDATE users 
       SET monthly_quota_used = 0, updated_at = NOW()
-      WHERE id = ${userId}
+      WHERE id = ${internalUserId}
     `;
   }
   
   const result = await sql`
     UPDATE users 
     SET last_quota_reset = CURRENT_DATE, updated_at = NOW()
-    WHERE id = ${userId}
+    WHERE id = ${internalUserId}
     RETURNING *
   `;
   return result[0] as User;
@@ -1194,7 +1265,12 @@ export async function getUserQuotas(userId: string): Promise<{
   weekly: { limit: number; used: number; reset_time: Date };
   monthly: { limit: number; used: number; reset_time: Date };
 }> {
-  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
+  const user = await sql`SELECT * FROM users WHERE id = ${internalUserId}`;
   if (!user[0]) {
     throw new Error('User not found');
   }
@@ -1242,7 +1318,12 @@ export async function getUserQuotas(userId: string): Promise<{
 }
 
 export async function checkAndResetQuotas(userId: string): Promise<User> {
-  const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
+
+  const user = await sql`SELECT * FROM users WHERE id = ${internalUserId}`;
   if (!user[0]) {
     throw new Error('User not found');
   }
@@ -1279,7 +1360,7 @@ export async function checkAndResetQuotas(userId: string): Promise<User> {
   }
 
   if (needsReset) {
-    return await resetUserQuotas(userId, resetDaily, resetWeekly, resetMonthly);
+    return await resetUserQuotas(internalUserId, resetDaily, resetWeekly, resetMonthly);
   }
 
   return user[0] as User;
@@ -1288,6 +1369,10 @@ export async function checkAndResetQuotas(userId: string): Promise<User> {
 // Additional functions needed for API endpoints
 
 export async function updateUser(userId: string, updates: Partial<User>): Promise<User> {
+  const internalUserId = await resolveUserId(userId);
+  if (!internalUserId) {
+    throw new Error('User not found');
+  }
   const setClause = Object.entries(updates)
     .filter(([_, value]) => value !== undefined)
     .map(([key, _]) => `${key} = $${key}`)
@@ -1300,24 +1385,24 @@ export async function updateUser(userId: string, updates: Partial<User>): Promis
   // Simple approach: update each field individually if provided
   let result;
   if (updates.experience_points !== undefined) {
-    result = await sql`UPDATE users SET experience_points = ${updates.experience_points} WHERE id = ${userId} RETURNING *`;
+    result = await sql`UPDATE users SET experience_points = ${updates.experience_points} WHERE id = ${internalUserId} RETURNING *`;
   }
   if (updates.rank !== undefined) {
-    result = await sql`UPDATE users SET rank = ${updates.rank} WHERE id = ${userId} RETURNING *`;
+    result = await sql`UPDATE users SET rank = ${updates.rank} WHERE id = ${internalUserId} RETURNING *`;
   }
   if (updates.green_balance !== undefined) {
-    result = await sql`UPDATE users SET green_balance = ${updates.green_balance} WHERE id = ${userId} RETURNING *`;
+    result = await sql`UPDATE users SET green_balance = ${updates.green_balance} WHERE id = ${internalUserId} RETURNING *`;
   }
   if (updates.blue_balance !== undefined) {
-    result = await sql`UPDATE users SET blue_balance = ${updates.blue_balance} WHERE id = ${userId} RETURNING *`;
+    result = await sql`UPDATE users SET blue_balance = ${updates.blue_balance} WHERE id = ${internalUserId} RETURNING *`;
   }
   if (updates.red_balance !== undefined) {
-    result = await sql`UPDATE users SET red_balance = ${updates.red_balance} WHERE id = ${userId} RETURNING *`;
+    result = await sql`UPDATE users SET red_balance = ${updates.red_balance} WHERE id = ${internalUserId} RETURNING *`;
   }
 
   // If no specific updates, just return the current user
   if (!result) {
-    result = await sql`SELECT * FROM users WHERE id = ${userId}`;
+    result = await sql`SELECT * FROM users WHERE id = ${internalUserId}`;
   }
 
   return result[0] as User;
