@@ -1,7 +1,7 @@
 // API client with Telegram WebApp authentication
 export class ApiClient {
   private static getAuthHeaders(): HeadersInit {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
@@ -49,9 +49,9 @@ export class ApiClient {
 
 // Legacy function for backward compatibility
 export async function apiCall(url: string, options: RequestInit = {}): Promise<Response> {
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
 
   // Add auth header if available

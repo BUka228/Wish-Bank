@@ -1,5 +1,5 @@
 // Global fetch interceptor for automatic authentication
-let originalFetch: typeof fetch;
+let originalFetch: typeof fetch | undefined;
 
 export function setupFetchInterceptor() {
   if (typeof window === 'undefined' || originalFetch) {
@@ -31,11 +31,11 @@ export function setupFetchInterceptor() {
         headers: headers,
       };
       
-      return originalFetch(input, newInit);
+      return originalFetch!(input, newInit);
     }
     
     // For non-API calls, use original fetch
-    return originalFetch(input, init);
+    return originalFetch!(input, init);
   };
 }
 
