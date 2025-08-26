@@ -188,266 +188,156 @@ export default function AdminControlPanelPage() {
       criticalOperationsAllowed={true}
     >
       {ConfirmationDialog}
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Административная панель управления
-                </h1>
-                <p className="mt-1 text-sm text-gray-600">
-                  Добро пожаловать, {adminData?.admin.name || 'Администратор'}
-                </p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-500">
-                  Окружение: <span className="font-medium">{adminData?.config.environment}</span>
+      <div className="min-h-screen relative">
+        {/* Animated Background */}
+        <div className="fixed inset-0 z-0">
+          <div className="absolute top-20 left-10 w-96 h-96 bg-blue-300/30 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
+          <div className="absolute top-20 right-10 w-96 h-96 bg-purple-300/30 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
+          <div className="absolute bottom-20 left-20 w-96 h-96 bg-pink-300/30 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
+        </div>
+        
+        {/* Content Overlay */}
+        <div className="relative z-10">
+          {/* Enhanced Header */}
+          <div className="glass-strong shadow-2xl border-b border-white/30 sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center py-8 space-y-6 lg:space-y-0">
+                <div className="flex items-center space-x-6">
+                  <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                    <span className="text-3xl">🎛️</span>
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-black bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent drop-shadow-2xl">
+                      Административная панель управления
+                    </h1>
+                    <p className="mt-2 text-lg text-white/80">
+                      Полный контроль над системой WSL и управление пользователями
+                    </p>
+                    <div className="mt-3 flex items-center space-x-4">
+                      <div className="flex items-center space-x-2 bg-green-500/20 backdrop-blur-sm border border-green-300/30 rounded-full px-4 py-2">
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-green-200 text-sm font-semibold">Система активна</span>
+                      </div>
+                      <div className="flex items-center space-x-2 bg-blue-500/20 backdrop-blur-sm border border-blue-300/30 rounded-full px-4 py-2">
+                        <span className="text-blue-200 text-sm font-semibold">Администратор</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Активен
+                <div className="flex items-center space-x-4">
+                  <div className="bg-red-500/20 backdrop-blur-sm border border-red-300/30 text-red-200 px-6 py-3 rounded-2xl text-sm font-bold flex items-center space-x-3 shadow-lg">
+                    <span className="animate-pulse">🔒</span>
+                    <span>Режим администратора</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-white border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav className="-mb-px flex space-x-8">
-              {[
-                { id: 'dashboard', label: 'Дашборд', icon: '📊' },
-                { id: 'users', label: 'Управление пользователями', icon: '👥' },
-                { id: 'wishes', label: 'Общие желания', icon: '⭐' },
-                { id: 'audit', label: 'Журнал действий', icon: '📋' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span>{tab.icon}</span>
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Enhanced Navigation Tabs */}
+            <div className="mb-8">
+              <div className="glass-strong rounded-3xl p-3 shadow-2xl border border-white/30">
+                <nav className="flex space-x-2 overflow-x-auto">
+                  {[
+                    { key: 'dashboard', label: 'Дашборд', icon: '📊', description: 'Общая статистика' },
+                    { key: 'users', label: 'Пользователи', icon: '👥', description: 'Управление пользователями' },
+                    { key: 'wishes', label: 'Желания', icon: '💫', description: 'Общие желания' },
+                    { key: 'audit', label: 'Аудит', icon: '📋', description: 'Журнал действий' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                      className={`group flex items-center space-x-3 px-6 py-4 rounded-2xl text-sm font-semibold transition-all duration-300 min-w-max touch-manipulation ${
+                        activeTab === tab.key
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-xl transform scale-105'
+                          : 'text-white/70 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      <span className={`text-xl ${activeTab === tab.key ? 'animate-bounce' : 'group-hover:scale-110'} transition-transform duration-300`}>
+                        {tab.icon}
+                      </span>
+                      <div className="text-left">
+                        <div>{tab.label}</div>
+                        <div className={`text-xs ${activeTab === tab.key ? 'text-blue-100' : 'text-white/50'}`}>
+                          {tab.description}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </div>
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
-              {/* Statistics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                        </svg>
+              {/* Enhanced Statistics Cards */}
+              {stats && (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="glass-strong p-6 rounded-3xl border border-blue-300/30 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 group">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <span className="text-2xl">👥</span>
                       </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">
-                            Всего пользователей
-                          </dt>
-                          <dd className="text-lg font-medium text-gray-900">
-                            {loading ? '...' : stats?.totalUsers || 0}
-                          </dd>
-                        </dl>
+                      <div>
+                        <h3 className="font-bold text-blue-200 text-sm mb-1">Пользователи</h3>
+                        <p className="text-3xl font-black text-white drop-shadow-lg">{stats?.totalUsers || 0}</p>
+                        <div className="text-xs text-blue-300 mt-1">В системе</div>
                       </div>
+                    </div>
+                    <div className="mt-4 h-2 bg-blue-200/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full animate-pulse w-full"></div>
+                    </div>
+                  </div>
+
+                  <div className="glass-strong p-6 rounded-3xl border border-purple-300/30 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 group">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <span className="text-2xl">💫</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-purple-200 text-sm mb-1">Общие желания</h3>
+                        <p className="text-3xl font-black text-white drop-shadow-lg">{stats?.totalSharedWishes || 0}</p>
+                        <div className="text-xs text-purple-300 mt-1">Активных</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 h-2 bg-purple-200/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-purple-400 to-violet-500 rounded-full animate-shimmer"></div>
+                    </div>
+                  </div>
+
+                  <div className="glass-strong p-6 rounded-3xl border border-green-300/30 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 group">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <span className="text-2xl">📋</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-green-200 text-sm mb-1">Действия админа</h3>
+                        <p className="text-3xl font-black text-white drop-shadow-lg">{stats?.totalAdminActions || 0}</p>
+                        <div className="text-xs text-green-300 mt-1">Залогировано</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 h-2 bg-green-200/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse" style={{width: '85%'}}></div>
+                    </div>
+                  </div>
+
+                  <div className="glass-strong p-6 rounded-3xl border border-yellow-300/30 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 group">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-14 h-14 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <span className="text-2xl">📈</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-yellow-200 text-sm mb-1">Активные желания</h3>
+                        <p className="text-3xl font-black text-white drop-shadow-lg">{stats?.totalActiveWishes || 0}</p>
+                        <div className="text-xs text-yellow-300 mt-1">В работе</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 h-2 bg-yellow-200/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-pulse" style={{width: '60%'}}></div>
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">
-                            Общие желания
-                          </dt>
-                          <dd className="text-lg font-medium text-gray-900">
-                            {loading ? '...' : stats?.totalSharedWishes || 0}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">
-                            Админ действий
-                          </dt>
-                          <dd className="text-lg font-medium text-gray-900">
-                            {loading ? '...' : stats?.totalAdminActions || 0}
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">
-                            Статус системы
-                          </dt>
-                          <dd className="text-lg font-medium text-green-600">
-                            Активна
-                          </dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="bg-white shadow rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Быстрые действия</h3>
-                  <p className="mt-1 text-sm text-gray-600">
-                    Часто используемые административные операции
-                  </p>
-                </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {quickActions.map((action) => (
-                      <button
-                        key={action.id}
-                        onClick={action.action}
-                        className={`p-4 rounded-lg border-2 border-dashed text-left hover:border-solid transition-all duration-200 ${
-                          action.variant === 'primary'
-                            ? 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
-                            : action.variant === 'secondary'
-                            ? 'border-gray-300 hover:border-gray-500 hover:bg-gray-50'
-                            : action.variant === 'warning'
-                            ? 'border-yellow-300 hover:border-yellow-500 hover:bg-yellow-50'
-                            : 'border-red-300 hover:border-red-500 hover:bg-red-50'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className={`flex-shrink-0 ${
-                            action.variant === 'primary'
-                              ? 'text-blue-600'
-                              : action.variant === 'secondary'
-                              ? 'text-gray-600'
-                              : action.variant === 'warning'
-                              ? 'text-yellow-600'
-                              : 'text-red-600'
-                          }`}>
-                            {action.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900">
-                              {action.title}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {action.description}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Recent Activity */}
-              <div className="bg-white shadow rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Последние действия</h3>
-                  <p className="mt-1 text-sm text-gray-600">
-                    Недавние административные операции
-                  </p>
-                </div>
-                <div className="p-6">
-                  {loading ? (
-                    <div className="space-y-3">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="animate-pulse">
-                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : error ? (
-                    <div className="text-center py-4">
-                      <p className="text-red-600 text-sm">{error}</p>
-                      <button
-                        onClick={loadStats}
-                        className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        Повторить попытку
-                      </button>
-                    </div>
-                  ) : stats?.recentActivity.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <p className="mt-2 text-sm">Нет недавних действий</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {stats?.recentActivity.map((activity) => (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          <div className="flex-shrink-0">
-                            <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900">
-                              {getActionTypeLabel(activity.type)}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {activity.description}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(activity.timestamp)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -462,6 +352,7 @@ export default function AdminControlPanelPage() {
           {activeTab === 'audit' && (
             <AdminAuditLog />
           )}
+          </div>
         </div>
       </div>
     </AdminPageSecurity>
