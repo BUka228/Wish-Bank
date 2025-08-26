@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from './ThemeProvider';
+import { useAdmin } from '../lib/hooks/useAdmin';
 import RankBadge from './ranks/RankBadge';
 import QuotaDisplay from './economy/QuotaDisplay';
 
@@ -27,6 +28,7 @@ interface EnhancedNavigationProps {
 export default function EnhancedNavigation({ currentUser, notifications }: EnhancedNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { isAdmin, isLoading: adminLoading } = useAdmin();
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -83,6 +85,24 @@ export default function EnhancedNavigation({ currentUser, notifications }: Enhan
     }
   ];
 
+  // Admin menu items - only visible for admin users
+  const adminMenuItems = [
+    {
+      href: '/admin/control-panel',
+      icon: '⚙️',
+      label: 'Панель управления',
+      color: 'red',
+      notifications: 0
+    },
+    {
+      href: '/admin/mana',
+      icon: '🔮',
+      label: 'Управление маной',
+      color: 'purple',
+      notifications: 0
+    }
+  ];
+
   const getColorClasses = (color: string, isHover = false) => {
     const baseClasses = {
       blue: isHover ? 'bg-blue-200 dark:bg-blue-800/50' : 'bg-blue-100 dark:bg-blue-900/50',
@@ -91,6 +111,7 @@ export default function EnhancedNavigation({ currentUser, notifications }: Enhan
       pink: isHover ? 'bg-pink-200 dark:bg-pink-800/50' : 'bg-pink-100 dark:bg-pink-900/50',
       yellow: isHover ? 'bg-yellow-200 dark:bg-yellow-800/50' : 'bg-yellow-100 dark:bg-yellow-900/50',
       orange: isHover ? 'bg-orange-200 dark:bg-orange-800/50' : 'bg-orange-100 dark:bg-orange-900/50',
+      red: isHover ? 'bg-red-200 dark:bg-red-800/50' : 'bg-red-100 dark:bg-red-900/50',
       gray: isHover ? 'bg-gray-200 dark:bg-gray-600' : 'bg-gray-100 dark:bg-gray-700/50'
     };
     return baseClasses[color as keyof typeof baseClasses] || baseClasses.gray;
@@ -219,6 +240,49 @@ export default function EnhancedNavigation({ currentUser, notifications }: Enhan
                 )}
               </Link>
             ))}
+
+            {/* Admin Panel - Only visible for admin users */}
+            {isAdmin && !adminLoading && (
+              <>
+                <div className="pt-4 pb-2">
+                  <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+                  <div className="text-center py-3">
+                    <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-3 py-1 rounded-full">
+                      👑 АДМИН ПАНЕЛЬ
+                    </span>
+                  </div>
+                  <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+                </div>
+
+                {adminMenuItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeMenu}
+                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group relative border border-red-100 dark:border-red-800"
+                  >
+                    <div className={`w-10 h-10 ${getColorClasses(item.color)} rounded-lg flex items-center justify-center group-hover:${getColorClasses(item.color, true)} transition-colors`}>
+                      <span className="text-xl">{item.icon}</span>
+                    </div>
+                    <span className="font-medium text-red-700 dark:text-red-300 flex-1">{item.label}</span>
+                    
+                    {/* Individual notifications */}
+                    {item.notifications > 0 && (
+                      <div className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                        {Math.min(99, item.notifications)}
+                      </div>
+                    )}
+                  </Link>
+                ))}
+              </>
+            )}
+
+            {/* Debug info for admin status */}
+            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+              <div>Admin Loading: {adminLoading ? '⏳' : '✅'}</div>
+              <div>Is Admin: {isAdmin ? '👑' : '👤'}</div>
+              <div>Show Admin Panel: {isAdmin && !adminLoading ? '✅ YES' : '❌ NO'}</div>
+            </div>
           </nav>
 
           {/* Settings Section */}
