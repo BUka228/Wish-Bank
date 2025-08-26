@@ -7,6 +7,7 @@ import SharedWishManager from '../../../components/admin/SharedWishManager';
 import AdminAuditLog from '../../../components/admin/AdminAuditLog';
 import AdminConfirmationDialog, { useConfirmationDialog, AdminConfirmations } from '../../../components/admin/AdminConfirmationDialog';
 import { useAdmin } from '../../../lib/hooks/useAdmin';
+import { useDeviceDetection } from '../../../lib/mobile-detection';
 
 interface AdminStats {
   totalUsers: number;
@@ -32,6 +33,7 @@ interface QuickAction {
 
 export default function AdminControlPanelPage() {
   const { adminData } = useAdmin();
+  const { isMobile, isTablet } = useDeviceDetection();
   const { showConfirmation, ConfirmationDialog } = useConfirmationDialog();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'wishes' | 'audit'>('dashboard');
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -321,36 +323,44 @@ export default function AdminControlPanelPage() {
                     </div>
                   </div>
 
-                  <div className="glass-strong p-6 rounded-3xl border border-yellow-300/30 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 group">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-14 h-14 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-2xl">📈</span>
+                  {!isMobile && (
+                    <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 group backdrop-blur-sm">
+                      <div className="flex items-center space-x-3 sm:space-x-4">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-yellow-500 to-amber-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                          <span className="text-xl sm:text-2xl">📈</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-yellow-600 dark:text-yellow-400 text-xs sm:text-sm mb-1">Активные желания</h3>
+                          <p className="text-2xl sm:text-3xl font-black text-gray-800 dark:text-white drop-shadow-lg">{stats?.totalActiveWishes || 0}</p>
+                          <div className="text-xs text-yellow-500 dark:text-yellow-400 mt-1">В работе</div>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-yellow-200 text-sm mb-1">Активные желания</h3>
-                        <p className="text-3xl font-black text-white drop-shadow-lg">{stats?.totalActiveWishes || 0}</p>
-                        <div className="text-xs text-yellow-300 mt-1">В работе</div>
+                      <div className="mt-3 sm:mt-4 h-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-pulse" style={{width: '60%'}}></div>
                       </div>
                     </div>
-                    <div className="mt-4 h-2 bg-yellow-200/20 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full animate-pulse" style={{width: '60%'}}></div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
           )}
 
           {activeTab === 'users' && (
-            <UserParameterManager />
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-gray-100 dark:border-gray-700 backdrop-blur-sm overflow-hidden">
+              <UserParameterManager />
+            </div>
           )}
 
           {activeTab === 'wishes' && (
-            <SharedWishManager />
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-gray-100 dark:border-gray-700 backdrop-blur-sm overflow-hidden">
+              <SharedWishManager />
+            </div>
           )}
 
           {activeTab === 'audit' && (
-            <AdminAuditLog />
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-gray-100 dark:border-gray-700 backdrop-blur-sm overflow-hidden">
+              <AdminAuditLog />
+            </div>
           )}
           </div>
         </div>
