@@ -6,7 +6,12 @@ import { useTheme } from './ThemeProvider';
 import { useAdmin } from '../lib/hooks/useAdmin';
 
 interface BurgerMenuProps {
-  currentUser?: { name: string; username?: string };
+  currentUser?: { 
+    name: string; 
+    username?: string;
+    id?: string;
+    telegram_id?: string;
+  };
 }
 
 export default function BurgerMenu({ currentUser }: BurgerMenuProps) {
