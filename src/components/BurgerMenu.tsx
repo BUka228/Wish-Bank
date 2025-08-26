@@ -100,14 +100,14 @@ export default function BurgerMenu({ currentUser }: BurgerMenuProps) {
               <span className="font-medium text-gray-700 dark:text-gray-200">Правила</span>
             </Link>
 
-            {/* Debug info for development */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
-                <div>Admin Loading: {adminLoading ? '⏳' : '✅'}</div>
-                <div>Is Admin: {isAdmin ? '👑' : '👤'}</div>
-                <div>User: {currentUser?.username || 'N/A'}</div>
-              </div>
-            )}
+            {/* Debug info - temporarily always visible */}
+            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+              <div>Admin Loading: {adminLoading ? '⏳' : '✅'}</div>
+              <div>Is Admin: {isAdmin ? '👑' : '👤'}</div>
+              <div>User: {currentUser?.username || 'N/A'}</div>
+              <div>User ID: {currentUser?.id || 'N/A'}</div>
+              <div>Telegram ID: {currentUser?.telegram_id || 'N/A'}</div>
+            </div>
 
             {/* Admin Panel - Only visible for admin users */}
             {isAdmin && !adminLoading && (

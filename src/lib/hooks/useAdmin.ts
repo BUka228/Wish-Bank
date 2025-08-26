@@ -52,10 +52,13 @@ export function useAdmin(): UseAdminResult {
     setError(null);
     
     try {
+      console.log('🔍 Checking admin access...');
       const response = await validateAdminAccess();
+      console.log('✅ Admin access validated:', response);
       setAdminData(response);
       setIsAdmin(true);
     } catch (err) {
+      console.log('❌ Admin access validation failed:', err);
       if (err instanceof AdminClientError) {
         if (err.statusCode === 401 || err.statusCode === 403) {
           setIsAdmin(false);

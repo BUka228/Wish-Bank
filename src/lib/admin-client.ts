@@ -64,17 +64,23 @@ export class AdminClientError extends Error {
  */
 export async function validateAdminAccess(): Promise<AdminValidationResponse> {
   try {
+    const authToken = getAuthToken();
+    console.log('🔐 Auth token available:', !!authToken);
+    
     const response = await fetch('/api/admin/security/validate', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         // Add authorization header if available
-        ...(getAuthToken() && { 'Authorization': `Bearer ${getAuthToken()}` })
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
       }
     });
 
+    console.log('📡 Admin validation response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.log('❌ Admin validation error:', errorData);
       throw new AdminClientError(
         errorData.error || 'Failed to validate admin access',
         response.status,
@@ -82,8 +88,11 @@ export async function validateAdminAccess(): Promise<AdminValidationResponse> {
       );
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('✅ Admin validation success:', result);
+    return result;
   } catch (error) {
+    console.log('💥 Admin validation exception:', error);
     if (error instanceof AdminClientError) {
       throw error;
     }
