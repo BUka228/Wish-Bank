@@ -422,19 +422,7 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
             </div>
           </div>
           
-          {/* Warning Message */}
-          <div className="mt-6 p-4 bg-red-500/20 backdrop-blur-sm border border-red-300/30 rounded-2xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-red-500 rounded-xl flex items-center justify-center">
-                <span className="text-white text-sm">⚠️</span>
-              </div>
-              <div>
-                <p className="text-red-200 text-sm font-semibold">
-                  Внимание: Значение будет установлено как точный баланс маны (не добавлено к текущему). Все действия логируются.
-                </p>
-              </div>
-            </div>
-          </div>
+
         </div>
       )}
 

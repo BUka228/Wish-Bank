@@ -98,11 +98,8 @@ export default function AdminLayout({
               </div>
               <div className="flex items-center space-x-3">
                 <div className="bg-gradient-to-r from-red-500/20 to-pink-600/20 backdrop-blur-sm text-white border border-red-300/30 px-3 py-2 rounded-full text-xs font-bold flex items-center space-x-2 shadow-lg">
-                  <span className="animate-pulse">🔒</span>
+                  <span>🔒</span>
                   <span>Admin</span>
-                </div>
-                <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                  <span className="text-white text-sm font-bold">●</span>
                 </div>
               </div>
             </div>
@@ -121,10 +118,6 @@ export default function AdminLayout({
                   </div>
                   <h1 className="text-2xl font-bold text-white drop-shadow-lg">WSL Admin</h1>
                   <p className="text-white/80 text-sm mt-1">Панель управления</p>
-                  <div className="mt-3 inline-flex items-center space-x-2 bg-white/10 rounded-full px-3 py-1 text-xs text-white border border-white/20">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    <span>Online</span>
-                  </div>
                 </div>
               </div>
 
@@ -156,16 +149,11 @@ export default function AdminLayout({
               {/* Enhanced Sidebar Footer */}
               <div className="p-6 border-t border-white/20 bg-gradient-to-r from-red-500/10 to-pink-600/10 backdrop-blur-sm">
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
+                  <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
                     <span className="text-white text-lg font-bold">🔒</span>
                   </div>
                   <div className="flex-1">
                     <div className="text-sm font-bold text-white">Режим администратора</div>
-                    <div className="text-xs text-white/70 mt-1">Полный доступ к системе</div>
-                    <div className="mt-2 flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-300">Активный сеанс</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -193,10 +181,6 @@ export default function AdminLayout({
                         <h1 className="text-lg font-bold text-white drop-shadow-lg">WSL Admin</h1>
                         <p className="text-white/80 text-sm">Панель управления</p>
                       </div>
-                    </div>
-                    <div className="inline-flex items-center space-x-2 bg-white/10 rounded-full px-3 py-1 text-xs text-white border border-white/20">
-                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                      <span>Активный сеанс</span>
                     </div>
                   </div>
                   <button
@@ -238,16 +222,11 @@ export default function AdminLayout({
                 {/* Enhanced Mobile Sidebar Footer */}
                 <div className="p-6 border-t border-white/20 bg-gradient-to-r from-red-500/10 to-pink-600/10">
                   <div className="flex items-center space-x-4">
-                    <div className="w-14 h-14 bg-gradient-to-r from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
+                    <div className="w-14 h-14 bg-gradient-to-r from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
                       <span className="text-white text-xl font-bold">🔒</span>
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-white">Администратор</div>
-                      <div className="text-sm text-white/80 mt-1">Полный доступ к системе</div>
-                      <div className="mt-2 flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-xs text-green-300">Система активна</span>
-                      </div>
                     </div>
                   </div>
                 </div>

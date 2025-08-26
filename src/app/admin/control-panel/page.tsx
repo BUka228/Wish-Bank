@@ -216,10 +216,6 @@ export default function AdminControlPanelPage() {
                       Полный контроль над системой WSL и управление пользователями
                     </p>
                     <div className="mt-3 flex items-center space-x-4">
-                      <div className="flex items-center space-x-2 bg-green-500/20 backdrop-blur-sm border border-green-300/30 rounded-full px-4 py-2">
-                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                        <span className="text-green-200 text-sm font-semibold">Система активна</span>
-                      </div>
                       <div className="flex items-center space-x-2 bg-blue-500/20 backdrop-blur-sm border border-blue-300/30 rounded-full px-4 py-2">
                         <span className="text-blue-200 text-sm font-semibold">Администратор</span>
                       </div>
@@ -228,7 +224,7 @@ export default function AdminControlPanelPage() {
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="bg-red-500/20 backdrop-blur-sm border border-red-300/30 text-red-200 px-6 py-3 rounded-2xl text-sm font-bold flex items-center space-x-3 shadow-lg">
-                    <span className="animate-pulse">🔒</span>
+                    <span>🔒</span>
                     <span>Режим администратора</span>
                   </div>
                 </div>

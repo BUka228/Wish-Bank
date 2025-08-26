@@ -74,12 +74,8 @@ export default function ManaAdminPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 backdrop-blur-sm text-red-600 dark:text-red-300 border border-red-300/30 px-3 py-2 sm:px-4 sm:py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center space-x-2 shadow-lg">
-                  <span className="animate-pulse">🔒</span>
+                  <span>🔒</span>
                   <span>{isMobile ? 'Admin' : 'Режим администратора'}</span>
-                </div>
-                <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm text-green-600 dark:text-green-300 border border-green-300/30 px-3 py-2 sm:px-4 sm:py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center space-x-2 shadow-lg">
-                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                  <span>Online</span>
                 </div>
               </div>
             </div>
@@ -180,40 +176,7 @@ export default function ManaAdminPage() {
           </div>
         </div>
 
-        {/* Enhanced Security Warning - Mobile Optimized */}
-        <div className={`fixed z-50 ${
-          isMobile 
-            ? 'bottom-6 left-4 right-4' 
-            : 'bottom-8 right-8 max-w-sm'
-        }`}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-2xl border-2 border-amber-200 dark:border-amber-700 backdrop-blur-xl">
-            <div className="flex items-start space-x-3 sm:space-x-4">
-              <div className="flex-shrink-0">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
-                  <span className="text-white text-lg">⚠️</span>
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-amber-700 dark:text-amber-300 mb-2">
-                  Административный доступ
-                </h3>
-                <p className="text-xs text-amber-600 dark:text-amber-200 leading-relaxed">
-                  {isMobile 
-                    ? 'Все действия логируются. Используйте ответственно.' 
-                    : 'Все действия логируются и могут быть проверены. Используйте административные функции ответственно.'
-                  }
-                </p>
-              </div>
-              {!isMobile && (
-                <button className="flex-shrink-0 text-amber-400 hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-100 transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   );
