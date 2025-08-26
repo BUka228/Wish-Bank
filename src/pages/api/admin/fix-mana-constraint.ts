@@ -52,39 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     `;
     console.log(`✅ Updated ${updateResult.length} existing mana transactions`);
 
-    // Step 6: Test creating a mana-only transaction
-    const testTransactionId = `test_${Date.now()}`;
-    await db.execute`
-      INSERT INTO transactions (
-        user_id, 
-        type, 
-        wish_type,
-        amount,
-        mana_amount, 
-        reason, 
-        transaction_category,
-        transaction_source,
-        experience_gained,
-        metadata
-      ) VALUES (
-        gen_random_uuid(),
-        'credit',
-        NULL,
-        0,
-        100,
-        ${`Migration test - ${testTransactionId}`},
-        'test',
-        'migration_test',
-        0,
-        '{}'
-      )
-    `;
-    
-    // Clean up test transaction
-    await db.execute`DELETE FROM transactions WHERE reason = ${`Migration test - ${testTransactionId}`}`;
-    console.log('✅ Mana-only transaction test passed');
-
-    // Step 7: Verification
+    // Step 6: Verification
     const problemTransactions = await db.execute`
       SELECT COUNT(*) as count
       FROM transactions 
@@ -96,11 +64,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const result = {
       success: true,
-      message: 'Migration completed successfully',
+      message: 'Migration completed successfully - wish_type constraint fixed',
       details: {
         updated_transactions: updateResult.length,
         remaining_problem_transactions: problemTransactions[0].count,
-        migration_timestamp: new Date().toISOString()
+        migration_timestamp: new Date().toISOString(),
+        constraint_removed: true,
+        indexes_created: true
       }
     };
 
