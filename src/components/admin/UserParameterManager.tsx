@@ -60,20 +60,33 @@ interface ValidationResult {
 }
 
 const VALID_RANKS = [
-  'Новичок', 'Ученик', 'Подмастерье', 'Мастер', 'Эксперт', 
-  'Виртуоз', 'Легенда', 'Мифический', 'Божественный'
+  'Рядовой', 'Ефрейтор', 'Младший сержант', 'Сержант', 'Старший сержант',
+  'Старшина', 'Прапорщик', 'Старший прапорщик', 'Младший лейтенант', 'Лейтенант',
+  'Старший лейтенант', 'Капитан', 'Майор', 'Подполковник', 'Полковник',
+  'Генерал-майор', 'Генерал-лейтенант', 'Генерал-полковник', 'Генерал армии', 'Маршал'
 ];
 
 const RANK_COLORS = {
-  'Новичок': 'bg-gray-100 text-gray-800',
-  'Ученик': 'bg-green-100 text-green-800',
-  'Подмастерье': 'bg-blue-100 text-blue-800',
-  'Мастер': 'bg-purple-100 text-purple-800',
-  'Эксперт': 'bg-yellow-100 text-yellow-800',
-  'Виртуоз': 'bg-pink-100 text-pink-800',
-  'Легенда': 'bg-orange-100 text-orange-800',
-  'Мифический': 'bg-red-100 text-red-800',
-  'Божественный': 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800'
+  'Рядовой': 'bg-gray-100 text-gray-800',
+  'Ефрейтор': 'bg-green-100 text-green-800',
+  'Младший сержант': 'bg-blue-100 text-blue-800',
+  'Сержант': 'bg-purple-100 text-purple-800',
+  'Старший сержант': 'bg-yellow-100 text-yellow-800',
+  'Старшина': 'bg-pink-100 text-pink-800',
+  'Прапорщик': 'bg-orange-100 text-orange-800',
+  'Старший прапорщик': 'bg-red-100 text-red-800',
+  'Младший лейтенант': 'bg-indigo-100 text-indigo-800',
+  'Лейтенант': 'bg-cyan-100 text-cyan-800',
+  'Старший лейтенант': 'bg-emerald-100 text-emerald-800',
+  'Капитан': 'bg-amber-100 text-amber-800',
+  'Майор': 'bg-rose-100 text-rose-800',
+  'Подполковник': 'bg-violet-100 text-violet-800',
+  'Полковник': 'bg-slate-100 text-slate-800',
+  'Генерал-майор': 'bg-red-200 text-red-900',
+  'Генерал-лейтенант': 'bg-purple-200 text-purple-900',
+  'Генерал-полковник': 'bg-blue-200 text-blue-900',
+  'Генерал армии': 'bg-gradient-to-r from-red-200 to-purple-200 text-red-900',
+  'Маршал': 'bg-gradient-to-r from-purple-200 to-yellow-200 text-purple-900 font-bold'
 };
 
 export default function UserParameterManager({ className = '' }: UserParameterManagerProps) {
