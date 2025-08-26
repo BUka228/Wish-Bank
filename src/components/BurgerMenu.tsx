@@ -141,39 +141,66 @@ export default function BurgerMenu({ currentUser }: BurgerMenuProps) {
               </Link>
             </div>
 
-            {/* Admin Panel - Only visible for admin users */}
+            {/* Admin Panel - ALWAYS VISIBLE FOR DEBUGGING */}
+            <div className="p-2 bg-green-100 dark:bg-green-900 rounded">
+              <div className="text-xs text-green-800 dark:text-green-200 mb-2">
+                🟢 ALWAYS VISIBLE ADMIN PANEL (for debugging)
+              </div>
+              <div className="pt-2 pb-2">
+                <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+                <div className="text-center py-2">
+                  <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-3 py-1 rounded-full">
+                    👑 АДМИН ПАНЕЛЬ (ВСЕГДА ВИДНА)
+                  </span>
+                </div>
+                <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+              </div>
+
+              <Link
+                href="/admin/control-panel"
+                onClick={closeMenu}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group border border-red-100 dark:border-red-800 mb-2"
+              >
+                <div className="w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors">
+                  <span className="text-xl">⚙️</span>
+                </div>
+                <span className="font-medium text-red-700 dark:text-red-300">Панель управления</span>
+              </Link>
+
+              <Link
+                href="/admin/mana"
+                onClick={closeMenu}
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors group border border-purple-100 dark:border-purple-800"
+              >
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 transition-colors">
+                  <span className="text-xl">🔮</span>
+                </div>
+                <span className="font-medium text-purple-700 dark:text-purple-300">Управление маной</span>
+              </Link>
+            </div>
+
+            {/* Original Admin Panel - Only visible for admin users */}
             {isAdmin && !adminLoading && (
               <>
                 <div className="pt-2 pb-2">
-                  <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+                  <div className="h-px bg-gradient-to-r from-transparent via-blue-200 dark:via-blue-700 to-transparent"></div>
                   <div className="text-center py-2">
-                    <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-3 py-1 rounded-full">
-                      👑 АДМИН ПАНЕЛЬ
+                    <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
+                      👑 УСЛОВНАЯ АДМИН ПАНЕЛЬ
                     </span>
                   </div>
-                  <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+                  <div className="h-px bg-gradient-to-r from-transparent via-blue-200 dark:via-blue-700 to-transparent"></div>
                 </div>
 
                 <Link
                   href="/admin/control-panel"
                   onClick={closeMenu}
-                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group border border-red-100 dark:border-red-800"
+                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors group border border-blue-100 dark:border-blue-800"
                 >
-                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
                     <span className="text-xl">⚙️</span>
                   </div>
-                  <span className="font-medium text-red-700 dark:text-red-300">Панель управления</span>
-                </Link>
-
-                <Link
-                  href="/admin/mana"
-                  onClick={closeMenu}
-                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors group border border-purple-100 dark:border-purple-800"
-                >
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 transition-colors">
-                    <span className="text-xl">🔮</span>
-                  </div>
-                  <span className="font-medium text-purple-700 dark:text-purple-300">Управление маной</span>
+                  <span className="font-medium text-blue-700 dark:text-blue-300">Условная панель управления</span>
                 </Link>
               </>
             )}
