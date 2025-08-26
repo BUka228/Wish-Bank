@@ -81,18 +81,20 @@ export default function WishCard({
 
   const getAuraIcon = (auraType: string): string => {
     const icons = {
-      romantic: '💕',
+      tech: '⚡',
       gaming: '🎮',
-      mysterious: '🔮'
+      nature: '🌿',
+      cosmic: '🌌'
     };
     return icons[auraType as keyof typeof icons] || '✨';
   };
 
   const getAuraGradient = (auraType: string): string => {
     const gradients = {
-      romantic: 'from-pink-400/20 to-rose-400/20',
+      tech: 'from-cyan-400/20 to-blue-400/20',
       gaming: 'from-purple-400/20 to-indigo-400/20',
-      mysterious: 'from-indigo-400/20 to-purple-400/20'
+      nature: 'from-green-400/20 to-emerald-400/20',
+      cosmic: 'from-indigo-400/20 to-purple-600/20'
     };
     return gradients[auraType as keyof typeof gradients] || '';
   };

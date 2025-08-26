@@ -176,18 +176,20 @@ export default function EnhancementInterface({
 
   const getAuraIcon = (auraType: AuraType): string => {
     const icons = {
-      romantic: '💕',
+      tech: '⚡',
       gaming: '🎮',
-      mysterious: '🔮'
+      nature: '🌿',
+      cosmic: '🌌'
     };
     return icons[auraType];
   };
 
   const getAuraColor = (auraType: AuraType): string => {
     const colors = {
-      romantic: 'from-pink-400 to-rose-400',
+      tech: 'from-cyan-400 to-blue-400',
       gaming: 'from-purple-400 to-indigo-400',
-      mysterious: 'from-indigo-400 to-purple-400'
+      nature: 'from-green-400 to-emerald-400',
+      cosmic: 'from-indigo-400 to-purple-600'
     };
     return colors[auraType];
   };
@@ -404,7 +406,7 @@ export default function EnhancementInterface({
               </p>
               
               <div className="grid grid-cols-1 gap-3">
-                {(['romantic', 'gaming', 'mysterious'] as AuraType[]).map((auraType) => (
+                {(['tech', 'gaming', 'nature', 'cosmic'] as AuraType[]).map((auraType) => (
                   <button
                     key={auraType}
                     onClick={() => applyAuraEnhancement(auraType)}

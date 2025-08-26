@@ -58,13 +58,15 @@ describe('Mana System Types', () => {
   });
 
   it('should have proper aura types', () => {
-    const romanticAura: AuraType = 'romantic';
+    const techAura: AuraType = 'tech';
     const gamingAura: AuraType = 'gaming';
-    const mysteriousAura: AuraType = 'mysterious';
+    const natureAura: AuraType = 'nature';
+    const cosmicAura: AuraType = 'cosmic';
     
-    expect(romanticAura).toBe('romantic');
+    expect(techAura).toBe('tech');
     expect(gamingAura).toBe('gaming');
-    expect(mysteriousAura).toBe('mysterious');
+    expect(natureAura).toBe('nature');
+    expect(cosmicAura).toBe('cosmic');
   });
 
   it('should have default enhancement costs', () => {
@@ -87,9 +89,10 @@ describe('Mana System Types', () => {
     expect(MANA_TEXTS.enhancements).toBe('Усиления');
     expect(MANA_TEXTS.priority).toBe('Приоритет');
     expect(MANA_TEXTS.aura).toBe('Аура');
-    expect(MANA_TEXTS.auraTypes.romantic).toBe('Романтическая');
+    expect(MANA_TEXTS.auraTypes.tech).toBe('Техническая');
     expect(MANA_TEXTS.auraTypes.gaming).toBe('Игровая');
-    expect(MANA_TEXTS.auraTypes.mysterious).toBe('Загадочная');
+    expect(MANA_TEXTS.auraTypes.nature).toBe('Природная');
+    expect(MANA_TEXTS.auraTypes.cosmic).toBe('Космическая');
   });
 
   it('should have proper error classes', () => {

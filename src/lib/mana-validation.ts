@@ -334,7 +334,7 @@ export class ManaValidator {
     } else if (typeof auraType !== 'string') {
       errors.push('Тип ауры должен быть строкой');
       isValid = false;
-    } else if (!['romantic', 'gaming', 'mysterious'].includes(auraType)) {
+    } else if (!['tech', 'gaming', 'nature', 'cosmic'].includes(auraType)) {
       errors.push(`Неверный тип ауры: ${auraType}`);
       isValid = false;
     }

@@ -66,9 +66,10 @@ export default function EnhancementMetrics({ className = '' }: EnhancementMetric
 
   const getAuraLabel = (auraType: string) => {
     const labels = {
-      romantic: 'Романтическая',
+      tech: 'Техническая',
       gaming: 'Игровая',
-      mysterious: 'Загадочная'
+      nature: 'Природная',
+      cosmic: 'Космическая'
     };
     return labels[auraType as keyof typeof labels] || auraType;
   };

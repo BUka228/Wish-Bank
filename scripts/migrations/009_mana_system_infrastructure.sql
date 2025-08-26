@@ -50,7 +50,7 @@ ALTER TABLE wish_enhancements ADD CONSTRAINT IF NOT EXISTS chk_priority_level
     CHECK (type != 'priority' OR (level >= 1 AND level <= 5));
 
 ALTER TABLE wish_enhancements ADD CONSTRAINT IF NOT EXISTS chk_aura_type 
-    CHECK (type != 'aura' OR aura_type IN ('romantic', 'gaming', 'mysterious'));
+    CHECK (type != 'aura' OR aura_type IN ('tech', 'gaming', 'nature', 'cosmic'));
 
 -- Add comments for documentation
 COMMENT ON COLUMN users.mana_balance IS 'Current mana balance for the user';
@@ -59,7 +59,7 @@ COMMENT ON COLUMN users.legacy_migration_completed IS 'Whether user has been mig
 COMMENT ON TABLE wish_enhancements IS 'Stores enhancements applied to wishes using mana';
 COMMENT ON COLUMN wish_enhancements.type IS 'Type of enhancement: priority or aura';
 COMMENT ON COLUMN wish_enhancements.level IS 'Enhancement level (1-5 for priority, 1 for aura)';
-COMMENT ON COLUMN wish_enhancements.aura_type IS 'Type of aura: romantic, gaming, or mysterious';
+COMMENT ON COLUMN wish_enhancements.aura_type IS 'Type of aura: tech, gaming, nature, or cosmic';
 COMMENT ON COLUMN wish_enhancements.cost IS 'Mana cost paid for this enhancement';
 
 COMMENT ON COLUMN transactions.mana_amount IS 'Amount of mana involved in transaction';
@@ -67,4 +67,4 @@ COMMENT ON COLUMN transactions.transaction_source IS 'Source of transaction (que
 COMMENT ON COLUMN transactions.enhancement_id IS 'Reference to enhancement if transaction was for enhancement';
 
 COMMENT ON COLUMN wishes.priority IS 'Priority level of wish (1-5), affects sorting order';
-COMMENT ON COLUMN wishes.aura IS 'Visual aura effect applied to wish (romantic, gaming, mysterious)';
+COMMENT ON COLUMN wishes.aura IS 'Visual aura effect applied to wish (tech, gaming, nature, cosmic)';

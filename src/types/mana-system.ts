@@ -22,7 +22,7 @@ export interface Enhancement {
 export interface EnhancedWish extends Omit<import('./quest-economy').EnhancedWish, 'type'> {
   // Remove the old 'type' field (green/blue/red) as wishes are now free to create
   priority: number; // 1-5, affects sorting
-  aura?: string; // "romantic" | "gaming" | "mysterious"
+  aura?: string; // "tech" | "gaming" | "nature" | "cosmic"
   enhancements: Enhancement[];
 }
 
@@ -51,7 +51,7 @@ export interface CurrencyConverter {
 
 // Enhancement Types
 export type EnhancementType = 'priority' | 'aura';
-export type AuraType = 'romantic' | 'gaming' | 'mysterious';
+export type AuraType = 'tech' | 'gaming' | 'nature' | 'cosmic';
 
 // Enhancement Cost Configuration
 export interface EnhancementCosts {
@@ -150,9 +150,10 @@ export const MANA_TEXTS = {
   priority: 'Приоритет',
   aura: 'Аура',
   auraTypes: {
-    romantic: 'Романтическая',
+    tech: 'Техническая',
     gaming: 'Игровая',
-    mysterious: 'Загадочная'
+    nature: 'Природная',
+    cosmic: 'Космическая'
   },
   errors: {
     insufficientMana: 'Недостаточно Маны',

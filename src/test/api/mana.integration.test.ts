@@ -328,7 +328,7 @@ describe('Mana API Integration Tests', () => {
         body: {
           wishId: mockWishId,
           type: 'aura',
-          auraType: 'romantic'
+          auraType: 'tech'
         }
       });
 
@@ -365,12 +365,12 @@ describe('Mana API Integration Tests', () => {
       expect(data.enhancement.aura_type).toBe(mockEnhancement.aura_type);
       expect(data.enhancement.cost).toBe(mockEnhancement.cost);
       expect(new Date(data.enhancement.applied_at)).toEqual(mockEnhancement.applied_at);
-      expect(data.message).toBe('Аура "romantic" применена к желанию');
+      expect(data.message).toBe('Аура "tech" применена к желанию');
 
       expect(enhancementEngine.validateEnhancement).toHaveBeenCalledWith(
-        mockWishId, 'user-123', 'aura', undefined, 'romantic'
+        mockWishId, 'user-123', 'aura', undefined, 'tech'
       );
-      expect(enhancementEngine.applyAuraEnhancement).toHaveBeenCalledWith(mockWishId, 'romantic');
+      expect(enhancementEngine.applyAuraEnhancement).toHaveBeenCalledWith(mockWishId, 'tech');
     });
 
     it('should return 400 for validation failures', async () => {
@@ -481,7 +481,7 @@ describe('Mana API Integration Tests', () => {
 
       expect(res._getStatusCode()).toBe(400);
       const data = JSON.parse(res._getData());
-      expect(data.error).toBe('auraType is required for aura enhancement and must be one of: romantic, gaming, mysterious');
+      expect(data.error).toBe('auraType is required for aura enhancement and must be one of: tech, gaming, nature, cosmic');
     });
 
     it('should return 401 for unauthorized requests', async () => {

@@ -584,7 +584,7 @@ export class EnhancementEngine implements IEnhancementEngine {
    * Проверить валидность типа ауры
    */
   private isValidAuraType(auraType: string): auraType is AuraType {
-    return ['romantic', 'gaming', 'mysterious'].includes(auraType);
+    return ['tech', 'gaming', 'nature', 'cosmic'].includes(auraType);
   }
 }
 

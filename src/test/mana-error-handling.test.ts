@@ -216,20 +216,24 @@ describe('Mana Error Handling System', () => {
     });
 
     it('should validate aura types correctly', () => {
-      const validRomantic = manaValidator.validateAuraType('romantic');
+      const validTech = manaValidator.validateAuraType('tech');
       const validGaming = manaValidator.validateAuraType('gaming');
-      const validMysterious = manaValidator.validateAuraType('mysterious');
+      const validNature = manaValidator.validateAuraType('nature');
+      const validCosmic = manaValidator.validateAuraType('cosmic');
       const invalidAura = manaValidator.validateAuraType('invalid');
       const nullAura = manaValidator.validateAuraType(null);
       
-      expect(validRomantic.isValid).toBe(true);
-      expect(validRomantic.auraType).toBe('romantic');
+      expect(validTech.isValid).toBe(true);
+      expect(validTech.auraType).toBe('tech');
       
       expect(validGaming.isValid).toBe(true);
       expect(validGaming.auraType).toBe('gaming');
       
-      expect(validMysterious.isValid).toBe(true);
-      expect(validMysterious.auraType).toBe('mysterious');
+      expect(validNature.isValid).toBe(true);
+      expect(validNature.auraType).toBe('nature');
+      
+      expect(validCosmic.isValid).toBe(true);
+      expect(validCosmic.auraType).toBe('cosmic');
       
       expect(invalidAura.isValid).toBe(false);
       expect(invalidAura.errors).toContain('Неверный тип ауры: invalid');

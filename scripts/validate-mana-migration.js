@@ -36,7 +36,7 @@ function validateMigrationSQL() {
     },
     {
       name: 'Has proper aura type constraints',
-      test: content.includes("aura_type IN ('romantic', 'gaming', 'mysterious')")
+      test: content.includes("aura_type IN ('tech', 'gaming', 'nature', 'cosmic')")
     },
     {
       name: 'Creates necessary indexes',

@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           hasAura: !!auraEnhancement
         }
       },
-      availableAuraTypes: ['romantic', 'gaming', 'mysterious'],
+      availableAuraTypes: ['tech', 'gaming', 'nature', 'cosmic'],
       costs: {
         priority: {
           1: enhancementEngine.calculateEnhancementCost('priority', 1),

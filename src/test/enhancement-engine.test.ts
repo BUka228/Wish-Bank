@@ -225,12 +225,12 @@ describe('EnhancementEngine', () => {
         return Promise.resolve([]);
       });
 
-      await expect(enhancementEngine.applyAuraEnhancement(mockWishId, 'romantic'))
+      await expect(enhancementEngine.applyAuraEnhancement(mockWishId, 'tech'))
         .rejects.toThrow('Wish already has an aura enhancement');
     });
 
     it('should accept valid aura types', async () => {
-      const validAuraTypes = ['romantic', 'gaming', 'mysterious'];
+      const validAuraTypes = ['tech', 'gaming', 'nature', 'cosmic'];
       
       for (const auraType of validAuraTypes) {
         // Reset mocks for each iteration
@@ -656,7 +656,7 @@ describe('EnhancementEngine', () => {
     });
 
     it('should validate all aura types correctly', async () => {
-      const auraTypes = ['romantic', 'gaming', 'mysterious'];
+      const auraTypes = ['tech', 'gaming', 'nature', 'cosmic'];
       
       for (const auraType of auraTypes) {
         const result = await enhancementEngine.validateEnhancement(
