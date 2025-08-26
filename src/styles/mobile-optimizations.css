@@ -20,6 +20,152 @@
   touch-action: manipulation;
 }
 
+/* Admin Panel Mobile Optimizations */
+@media (max-width: 768px) {
+  /* Admin sidebar improvements */
+  .admin-sidebar {
+    width: 85vw;
+    max-width: 320px;
+  }
+  
+  .admin-sidebar-overlay {
+    backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Admin metrics grid */
+  .admin-metrics-mobile {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .admin-metric-card {
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Admin forms */
+  .admin-form-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .admin-form-mobile input,
+  .admin-form-mobile select,
+  .admin-form-mobile textarea {
+    padding: 0.875rem;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #d1d5db;
+  }
+  
+  .admin-form-mobile input:focus,
+  .admin-form-mobile select:focus,
+  .admin-form-mobile textarea:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  }
+  
+  /* Admin buttons */
+  .admin-button-mobile {
+    padding: 0.875rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+  }
+  
+  /* Admin user cards */
+  .admin-user-card-mobile {
+    padding: 1rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .admin-user-card-mobile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Admin navigation tabs mobile */
+  .admin-tabs-mobile {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .admin-tab-mobile {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+  
+  .admin-tab-mobile.active {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  }
+  
+  /* Admin pagination mobile */
+  .admin-pagination-mobile {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+  
+  .admin-pagination-mobile button {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  
+  .admin-pagination-mobile button.active {
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+  }
+  
+  .admin-pagination-mobile button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 /* Smooth scrolling for mobile */
 @media (max-width: 768px) {
   html {
@@ -74,6 +220,126 @@
   button, a, [role="button"] {
     min-height: 48px;
     min-width: 48px;
+  }
+  
+  /* Admin metrics for tablet */
+  .admin-metrics-tablet {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  /* Admin forms for tablet */
+  .admin-form-tablet {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* Enhanced Admin Animations */
+.admin-fade-in {
+  animation: adminFadeIn 0.3s ease-out;
+}
+
+@keyframes adminFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-slide-up {
+  animation: adminSlideUp 0.4s ease-out;
+}
+
+@keyframes adminSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-scale-in {
+  animation: adminScaleIn 0.2s ease-out;
+}
+
+@keyframes adminScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Enhanced Glass Effect */
+.admin-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.admin-glass-dark {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient Borders */
+.admin-gradient-border {
+  position: relative;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #8b5cf6, #3b82f6) border-box;
+  border: 2px solid transparent;
+  border-radius: 1rem;
+}
+
+/* Enhanced Hover Effects */
+.admin-hover-lift {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Loading Animations */
+.admin-pulse {
+  animation: adminPulse 2s infinite;
+}
+
+@keyframes adminPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.admin-spin {
+  animation: adminSpin 1s linear infinite;
+}
+
+@keyframes adminSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
