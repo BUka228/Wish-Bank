@@ -3,7 +3,7 @@
  * This migration fixes the database constraint that prevents mana-only transactions
  */
 
-import { sql } from '@vercel/postgres';
+import { sql } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
