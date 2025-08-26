@@ -37,6 +37,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 async function getInAppNotifications(userId: string) {
   try {
+    // First, get the user's UUID from their telegram_id
+    const userResult = await sql`
+      SELECT id FROM users WHERE telegram_id = ${userId}
+    `;
+    
+    if (userResult.length === 0) {
+      return []; // User not found
+    }
+    
+    const userUuid = userResult[0].id;
+
     const result = await sql`
       SELECT 
         id,
@@ -49,7 +60,7 @@ async function getInAppNotifications(userId: string) {
         created_at as timestamp,
         action_url
       FROM in_app_notifications 
-      WHERE user_id = ${userId}
+      WHERE user_id = ${userUuid}
       AND (expires_at IS NULL OR expires_at > NOW())
       ORDER BY created_at DESC 
       LIMIT 50
@@ -74,12 +85,23 @@ async function getInAppNotifications(userId: string) {
 }
 
 async function generateLegacyNotifications(userId: string) {
-  const notifications = [];
+  const notifications: any[] = [];
 
   try {
+    // First, get the user's UUID from their telegram_id
+    const userResult = await sql`
+      SELECT id FROM users WHERE telegram_id = ${userId}
+    `;
+    
+    if (userResult.length === 0) {
+      return notifications; // User not found
+    }
+    
+    const userUuid = userResult[0].id;
+
     // Check for active quests assigned to user
     const activeQuests = await sql`
-      SELECT * FROM quests WHERE assignee_id = ${userId} AND status = 'active' ORDER BY created_at DESC LIMIT 5
+      SELECT * FROM quests WHERE assignee_id = ${userUuid} AND status = 'active' ORDER BY created_at DESC LIMIT 5
     `;
 
     for (const quest of activeQuests) {
@@ -105,7 +127,7 @@ async function generateLegacyNotifications(userId: string) {
 
     // Check for current random events
     const currentEvent = await sql`
-      SELECT * FROM random_events WHERE user_id = ${userId} AND status = 'active' ORDER BY created_at DESC LIMIT 1
+      SELECT * FROM random_events WHERE user_id = ${userUuid} AND status = 'active' ORDER BY created_at DESC LIMIT 1
     `;
 
     if (currentEvent.length > 0) {
@@ -124,7 +146,7 @@ async function generateLegacyNotifications(userId: string) {
 
     // Check for shared wishes pending approval
     const pendingSharedWishes = await sql`
-      SELECT * FROM wishes WHERE is_shared = true AND shared_approved_by IS NULL AND author_id != ${userId} ORDER BY created_at DESC LIMIT 3
+      SELECT * FROM wishes WHERE is_shared = true AND shared_approved_by IS NULL AND author_id != ${userUuid} ORDER BY created_at DESC LIMIT 3
     `;
 
     for (const wish of pendingSharedWishes) {
@@ -141,7 +163,7 @@ async function generateLegacyNotifications(userId: string) {
     }
 
     // Check for rank progression
-    const user = await sql`SELECT * FROM users WHERE id = ${userId}`;
+    const user = await sql`SELECT * FROM users WHERE id = ${userUuid}`;
     if (user.length > 0) {
       const userData = user[0];
       const currentRank = await sql`
@@ -157,7 +179,7 @@ async function generateLegacyNotifications(userId: string) {
           const expNeeded = nextRank[0].min_experience - (userData.experience_points || 0);
           if (expNeeded <= 50) {
             notifications.push({
-              id: `rank-progress-${userId}`,
+              id: `rank-progress-${userUuid}`,
               type: 'rank',
               title: 'Близко к повышению',
               message: `До звания "${nextRank[0].name}" осталось ${expNeeded} опыта`,

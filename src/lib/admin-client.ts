@@ -203,18 +203,11 @@ function formatActionType(actionType: string): string {
 }
 
 /**
- * Gets authentication token from storage or context
- * This is a placeholder - implement based on your auth system
+ * Gets Telegram Web App authentication data
  */
 function getAuthToken(): string | null {
-  // In a real implementation, this would get the token from:
-  // - localStorage/sessionStorage
-  // - cookies
-  // - React context
-  // - or wherever you store authentication tokens
-  
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+    return window.Telegram.WebApp.initData;
   }
   
   return null;

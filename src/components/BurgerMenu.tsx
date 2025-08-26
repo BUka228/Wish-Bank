@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from './ThemeProvider';
+import { useAdmin } from '../lib/hooks/useAdmin';
 
 interface BurgerMenuProps {
   currentUser?: { name: string; username?: string };
@@ -11,6 +12,7 @@ interface BurgerMenuProps {
 export default function BurgerMenu({ currentUser }: BurgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { isAdmin, isLoading: adminLoading } = useAdmin();
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -97,6 +99,52 @@ export default function BurgerMenu({ currentUser }: BurgerMenuProps) {
               </div>
               <span className="font-medium text-gray-700 dark:text-gray-200">Правила</span>
             </Link>
+
+            {/* Debug info for development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+                <div>Admin Loading: {adminLoading ? '⏳' : '✅'}</div>
+                <div>Is Admin: {isAdmin ? '👑' : '👤'}</div>
+                <div>User: {currentUser?.username || 'N/A'}</div>
+              </div>
+            )}
+
+            {/* Admin Panel - Only visible for admin users */}
+            {isAdmin && !adminLoading && (
+              <>
+                <div className="pt-2 pb-2">
+                  <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+                  <div className="text-center py-2">
+                    <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-3 py-1 rounded-full">
+                      👑 АДМИН ПАНЕЛЬ
+                    </span>
+                  </div>
+                  <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+                </div>
+
+                <Link
+                  href="/admin/control-panel"
+                  onClick={closeMenu}
+                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group border border-red-100 dark:border-red-800"
+                >
+                  <div className="w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors">
+                    <span className="text-xl">⚙️</span>
+                  </div>
+                  <span className="font-medium text-red-700 dark:text-red-300">Панель управления</span>
+                </Link>
+
+                <Link
+                  href="/admin/mana"
+                  onClick={closeMenu}
+                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors group border border-purple-100 dark:border-purple-800"
+                >
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 transition-colors">
+                    <span className="text-xl">🔮</span>
+                  </div>
+                  <span className="font-medium text-purple-700 dark:text-purple-300">Управление маной</span>
+                </Link>
+              </>
+            )}
 
             {/* Theme Toggle */}
             <button

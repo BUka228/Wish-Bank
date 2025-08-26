@@ -8,6 +8,7 @@ import ManaQuickActions from '@/components/ManaQuickActions';
 import WishCard from '@/components/WishCard';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
 import NotificationSystem from '@/components/NotificationSystem';
+import AdminDebugInfo from '@/components/AdminDebugInfo';
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
@@ -398,6 +399,9 @@ export default function Home() {
         {/* Footer spacing */}
         <div className="pb-6"></div>
       </div>
+      
+      {/* Admin Debug Info - только в development */}
+      <AdminDebugInfo />
     </div>
   );
 }
