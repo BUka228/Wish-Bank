@@ -31,8 +31,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const users = await db.execute<UserManaInfo>`
       SELECT 
         u.id,
-        u.username,
-        u.mana_balance,
+        COALESCE(u.username, u.name) as username,
+        COALESCE(u.mana_balance, 0) as mana_balance,
         COALESCE(earned.total_earned, 0) as total_earned,
         COALESCE(spent.total_spent, 0) as total_spent,
         COALESCE(enhancements.enhancement_count, 0) as enhancement_count,
@@ -73,7 +73,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         GROUP BY applied_by
       ) enhancements ON u.id = enhancements.user_id
       WHERE u.mana_balance IS NOT NULL
-      GROUP BY u.id, u.username, u.mana_balance, earned.total_earned, spent.total_spent, enhancements.enhancement_count
       ORDER BY u.mana_balance DESC
     `;
 
