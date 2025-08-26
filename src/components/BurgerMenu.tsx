@@ -112,6 +112,33 @@ export default function BurgerMenu({ currentUser }: BurgerMenuProps) {
               <div>User: {currentUser?.username || 'N/A'}</div>
               <div>User ID: {currentUser?.id || 'N/A'}</div>
               <div>Telegram ID: {currentUser?.telegram_id || 'N/A'}</div>
+              <div>Condition Check: {isAdmin && !adminLoading ? '✅ SHOW ADMIN' : '❌ HIDE ADMIN'}</div>
+              <div>isAdmin: {String(isAdmin)}</div>
+              <div>adminLoading: {String(adminLoading)}</div>
+            </div>
+
+            {/* Force show admin panel for debugging */}
+            <div className="p-2 bg-red-100 dark:bg-red-900 rounded text-xs">
+              <div>🚨 FORCE ADMIN PANEL TEST 🚨</div>
+              <div className="pt-2 pb-2">
+                <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+                <div className="text-center py-2">
+                  <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-3 py-1 rounded-full">
+                    👑 ТЕСТ АДМИН ПАНЕЛЬ
+                  </span>
+                </div>
+                <div className="h-px bg-gradient-to-r from-transparent via-red-200 dark:via-red-700 to-transparent"></div>
+              </div>
+              <Link
+                href="/admin/control-panel"
+                onClick={closeMenu}
+                className="flex items-center gap-4 p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors group border border-red-100 dark:border-red-800"
+              >
+                <div className="w-8 h-8 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors">
+                  <span className="text-sm">⚙️</span>
+                </div>
+                <span className="text-xs font-medium text-red-700 dark:text-red-300">ТЕСТ Панель управления</span>
+              </Link>
             </div>
 
             {/* Admin Panel - Only visible for admin users */}

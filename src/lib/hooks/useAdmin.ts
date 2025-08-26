@@ -47,6 +47,9 @@ export function useAdmin(): UseAdminResult {
   const [error, setError] = useState<string | null>(null);
   const [adminData, setAdminData] = useState<AdminValidationResponse | null>(null);
 
+  // Debug logging for state changes
+  console.log('🔄 useAdmin state:', { isAdmin, isLoading, error, adminData: !!adminData });
+
   const checkAdminAccess = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -55,10 +58,13 @@ export function useAdmin(): UseAdminResult {
       console.log('🔍 Checking admin access...');
       const response = await validateAdminAccess();
       console.log('✅ Admin access validated:', response);
+      console.log('🔧 Setting isAdmin to true...');
       setAdminData(response);
       setIsAdmin(true);
+      console.log('✅ State updated: isAdmin = true');
     } catch (err) {
       console.log('❌ Admin access validation failed:', err);
+      console.log('🔧 Setting isAdmin to false...');
       if (err instanceof AdminClientError) {
         if (err.statusCode === 401 || err.statusCode === 403) {
           setIsAdmin(false);
@@ -71,8 +77,11 @@ export function useAdmin(): UseAdminResult {
       }
       setAdminData(null);
       setIsAdmin(false);
+      console.log('❌ State updated: isAdmin = false');
     } finally {
+      console.log('🏁 Setting isLoading to false...');
       setIsLoading(false);
+      console.log('✅ Final state: isLoading = false');
     }
   }, []);
 
