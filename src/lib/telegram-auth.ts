@@ -90,11 +90,12 @@ export function createMockTelegramUser(): TelegramUser {
 // Function to get user from request (for API endpoints)
 export async function getUserFromRequest(req: any): Promise<any | null> {
   try {
-    // In development or when no proper auth is available, return mock user
+    // In development or when no proper auth is available, return mock user with admin Telegram ID
     if (process.env.NODE_ENV === 'development' || !process.env.TELEGRAM_BOT_TOKEN) {
+      const adminTelegramId = process.env.ADMIN_TELEGRAM_ID || '507387437';
       return {
-        id: '123456789',
-        telegram_id: '123456789',
+        id: adminTelegramId, // Use Telegram ID for compatibility
+        telegram_id: adminTelegramId,
         name: 'Тестовый Пользователь',
         username: 'testuser',
         green_balance: 10,
@@ -112,9 +113,10 @@ export async function getUserFromRequest(req: any): Promise<any | null> {
     if (!authHeader) {
       // Fallback to mock user if no auth header (for testing)
       console.warn('No authorization header found, using mock user');
+      const adminTelegramId = process.env.ADMIN_TELEGRAM_ID || '507387437';
       return {
-        id: '123456789',
-        telegram_id: '123456789',
+        id: adminTelegramId, // Use Telegram ID for compatibility
+        telegram_id: adminTelegramId,
         name: 'Тестовый Пользователь',
         username: 'testuser',
         green_balance: 10,
@@ -139,9 +141,10 @@ export async function getUserFromRequest(req: any): Promise<any | null> {
     const telegramUser = validateTelegramWebAppData(initData, botToken);
     if (!telegramUser) {
       console.warn('Invalid Telegram WebApp data, using mock user');
+      const adminTelegramId = process.env.ADMIN_TELEGRAM_ID || '507387437';
       return {
-        id: '123456789',
-        telegram_id: '123456789',
+        id: adminTelegramId, // Use Telegram ID for compatibility
+        telegram_id: adminTelegramId,
         name: 'Тестовый Пользователь',
         username: 'testuser',
         green_balance: 10,
@@ -154,10 +157,9 @@ export async function getUserFromRequest(req: any): Promise<any | null> {
       };
     }
 
-    // Here you would typically fetch the full user data from database
-    // For now, return the telegram user data
+    // Return the telegram user data with Telegram ID as id for compatibility
     return {
-      id: telegramUser.id,
+      id: telegramUser.id, // This is the Telegram ID
       telegram_id: telegramUser.id,
       name: telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : ''),
       username: telegramUser.username,
@@ -171,10 +173,11 @@ export async function getUserFromRequest(req: any): Promise<any | null> {
     };
   } catch (error) {
     console.error('Error getting user from request:', error);
-    // Return mock user as fallback
+    // Return mock user as fallback with admin Telegram ID
+    const adminTelegramId = process.env.ADMIN_TELEGRAM_ID || '507387437';
     return {
-      id: '123456789',
-      telegram_id: '123456789',
+      id: adminTelegramId, // Use Telegram ID for compatibility
+      telegram_id: adminTelegramId,
       name: 'Тестовый Пользователь',
       username: 'testuser',
       green_balance: 10,

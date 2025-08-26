@@ -41,9 +41,21 @@ export async function validateAdminAccess(userId: string): Promise<boolean> {
   try {
     // Check if user's telegram_id matches the admin telegram ID
     const sql = neon(process.env.DATABASE_URL!);
-    const result = await sql`
-      SELECT telegram_id FROM users WHERE id = ${userId}
-    `;
+    
+    // If userId looks like a Telegram ID (numeric string), search by telegram_id
+    // Otherwise, search by UUID
+    let result;
+    if (/^\d+$/.test(userId)) {
+      // userId is a Telegram ID
+      result = await sql`
+        SELECT telegram_id FROM users WHERE telegram_id = ${userId}
+      `;
+    } else {
+      // userId is a UUID
+      result = await sql`
+        SELECT telegram_id FROM users WHERE id = ${userId}
+      `;
+    }
     
     if (result.length === 0) {
       return false;
@@ -72,11 +84,25 @@ export async function validateAdminAccessByTelegramId(telegramId: string): Promi
 export async function getAdminUser(userId: string): Promise<AdminUser | null> {
   try {
     const sql = neon(process.env.DATABASE_URL!);
-    const result = await sql`
-      SELECT id, telegram_id, name, username 
-      FROM users 
-      WHERE id = ${userId} AND telegram_id = ${ADMIN_TELEGRAM_ID}
-    `;
+    
+    // If userId looks like a Telegram ID (numeric string), search by telegram_id
+    // Otherwise, search by UUID
+    let result;
+    if (/^\d+$/.test(userId)) {
+      // userId is a Telegram ID
+      result = await sql`
+        SELECT id, telegram_id, name, username 
+        FROM users 
+        WHERE telegram_id = ${userId} AND telegram_id = ${ADMIN_TELEGRAM_ID}
+      `;
+    } else {
+      // userId is a UUID
+      result = await sql`
+        SELECT id, telegram_id, name, username 
+        FROM users 
+        WHERE id = ${userId} AND telegram_id = ${ADMIN_TELEGRAM_ID}
+      `;
+    }
     
     if (result.length === 0) {
       return null;
@@ -112,12 +138,32 @@ export async function logAdminAction(
   try {
     const sql = neon(process.env.DATABASE_URL!);
     
+    // Convert Telegram IDs to UUIDs if needed
+    let adminUuid = adminId;
+    let targetUuid = targetUserId;
+    
+    if (/^\d+$/.test(adminId)) {
+      // adminId is a Telegram ID, get the UUID
+      const adminResult = await sql`SELECT id FROM users WHERE telegram_id = ${adminId}`;
+      if (adminResult.length > 0) {
+        adminUuid = adminResult[0].id;
+      }
+    }
+    
+    if (targetUserId && /^\d+$/.test(targetUserId)) {
+      // targetUserId is a Telegram ID, get the UUID
+      const targetResult = await sql`SELECT id FROM users WHERE telegram_id = ${targetUserId}`;
+      if (targetResult.length > 0) {
+        targetUuid = targetResult[0].id;
+      }
+    }
+    
     await sql`
       INSERT INTO admin_audit_log 
       (admin_user_id, target_user_id, action_type, old_values, new_values, reason, ip_address, user_agent)
       VALUES (
-        ${adminId}, 
-        ${targetUserId || null}, 
+        ${adminUuid}, 
+        ${targetUuid || null}, 
         ${actionType}, 
         ${oldValues ? JSON.stringify(oldValues) : null}, 
         ${newValues ? JSON.stringify(newValues) : null}, 
