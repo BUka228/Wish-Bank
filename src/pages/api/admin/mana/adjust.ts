@@ -33,9 +33,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    if (amount === 0) {
+    if (amount < 0) {
       return res.status(400).json({ 
-        error: 'Сумма корректировки не может быть равна нулю' 
+        error: 'Значение маны не может быть отрицательным' 
       });
     }
 
@@ -50,27 +50,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const user = userCheck[0];
     const currentBalance = user.mana_balance || 0;
-    const newBalance = currentBalance + amount;
-
-    // Проверяем, что баланс не станет отрицательным
-    if (newBalance < 0) {
-      return res.status(400).json({ 
-        error: `Недостаточно Маны для списания. Текущий баланс: ${currentBalance}, попытка списать: ${Math.abs(amount)}` 
-      });
-    }
+    const newBalance = amount; // Устанавливаем точное значение, а не добавляем
+    const adjustment = newBalance - currentBalance; // Вычисляем разность для корректировки
 
     // Используем ManaEngine для корректировки баланса
-    
-    if (amount > 0) {
-      await manaEngine.addMana(userId, amount, `Админ. начисление: ${reason}`);
-    } else {
-      const success = await manaEngine.spendMana(userId, Math.abs(amount), `Админ. списание: ${reason}`);
+    if (adjustment > 0) {
+      // Нужно добавить ману
+      await manaEngine.addMana(userId, adjustment, `Админ. установка баланса на ${newBalance}: ${reason}`);
+    } else if (adjustment < 0) {
+      // Нужно списать ману
+      const success = await manaEngine.spendMana(userId, Math.abs(adjustment), `Админ. установка баланса на ${newBalance}: ${reason}`);
       if (!success) {
         return res.status(400).json({ 
-          error: 'Не удалось выполнить списание Маны' 
+          error: `Не удалось установить баланс. Текущий баланс: ${currentBalance}, попытка установить: ${newBalance}` 
         });
       }
     }
+    // Если adjustment === 0, то баланс уже соответствует желаемому значению
 
     // Логируем административное действие
     await db.execute`
@@ -82,14 +78,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         metadata
       ) VALUES (
         ${userId},
-        ${amount},
-        'admin_adjustment',
-        ${'Административная корректировка: ' + reason},
+        ${adjustment},
+        'admin_balance_set',
+        ${'Административная установка баланса: ' + reason},
         ${JSON.stringify({
           admin_user_id: adminUser.id,
           admin_username: adminUser.username,
           previous_balance: currentBalance,
           new_balance: newBalance,
+          target_balance: amount,
+          adjustment_amount: adjustment,
           adjustment_reason: reason
         })}
       )
@@ -105,7 +103,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: 'Баланс успешно скорректирован',
       user: updatedUser[0],
       adjustment: {
-        amount,
+        target_balance: amount,
+        adjustment_amount: adjustment,
         reason,
         previous_balance: currentBalance,
         new_balance: newBalance

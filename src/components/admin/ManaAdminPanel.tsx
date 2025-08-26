@@ -70,7 +70,7 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
   };
 
   const handleManaAdjustment = async () => {
-    if (!selectedUser || adjustmentAmount === 0) return;
+    if (!selectedUser || adjustmentAmount < 0) return;
 
     try {
       const response = await fetch('/api/admin/mana/adjust', {
@@ -81,12 +81,13 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
         body: JSON.stringify({
           userId: selectedUser,
           amount: adjustmentAmount,
-          reason: adjustmentReason || 'Административная корректировка'
+          reason: adjustmentReason || 'Административная установка баланса'
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Ошибка корректировки баланса');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка установки баланса');
       }
 
       await loadAdminData();
@@ -96,9 +97,9 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
       setAdjustmentReason('');
       setShowAdjustmentPanel(false);
       
-      alert('Баланс успешно скорректирован');
+      alert('Баланс успешно установлен');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Ошибка корректировки');
+      alert(err instanceof Error ? err.message : 'Ошибка установки баланса');
     }
   };
 
@@ -209,7 +210,7 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
                 <svg className="w-5 h-5 group-hover:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                 </svg>
-                <span className="font-semibold">{isMobile ? 'Коррект.' : 'Корректировка'}</span>
+                <span className="font-semibold">{isMobile ? 'Установка' : 'Установка баланса'}</span>
               </div>
             </button>
           </div>
@@ -331,7 +332,7 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-white drop-shadow-lg">
-                  Корректировка баланса Маны
+                  Установка баланса Маны
                 </h3>
                 <p className="text-orange-200 mt-1">Административное управление экономикой</p>
               </div>
@@ -369,16 +370,24 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
             </div>
             
             <div className="space-y-3">
-              <label className="text-sm font-bold text-orange-200">Сумма</label>
+              <label className="text-sm font-bold text-orange-200">Новый баланс маны</label>
               <div className="relative">
                 <input
                   type="number"
+                  min="0"
                   value={adjustmentAmount}
                   onChange={(e) => setAdjustmentAmount(parseInt(e.target.value) || 0)}
-                  placeholder="Сумма корректировки"
+                  placeholder="Установить баланс маны"
                   className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl focus:ring-2 focus:ring-orange-500/50 focus:border-white/40 text-white placeholder-white/60 transition-all duration-300"
                 />
                 <div className="absolute right-4 top-4 text-white/60">✨</div>
+              </div>
+              <div className="text-xs text-orange-300 mt-1">
+                {selectedUser && users.find(u => u.id === selectedUser) && (
+                  <span>
+                    Текущий баланс: {(users.find(u => u.id === selectedUser)?.mana_balance || 0).toLocaleString()} маны
+                  </span>
+                )}
               </div>
             </div>
             
@@ -400,14 +409,14 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
               <label className="text-sm font-bold text-orange-200">Действие</label>
               <button
                 onClick={handleManaAdjustment}
-                disabled={!selectedUser || adjustmentAmount === 0}
+                disabled={!selectedUser || adjustmentAmount < 0}
                 className="group w-full px-6 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-2xl hover:from-orange-600 hover:to-red-700 disabled:from-gray-500 disabled:to-gray-600 disabled:opacity-50 transition-all duration-300 font-bold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:hover:scale-100 touch-manipulation"
               >
                 <div className="flex items-center justify-center space-x-2">
                   <svg className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>Применить</span>
+                  <span>Установить баланс</span>
                 </div>
               </button>
             </div>
@@ -421,7 +430,7 @@ export default function ManaAdminPanel({ className = '' }: ManaAdminPanelProps) 
               </div>
               <div>
                 <p className="text-red-200 text-sm font-semibold">
-                  Внимание: Все действия по корректировке логируются и могут быть проверены.
+                  Внимание: Значение будет установлено как точный баланс маны (не добавлено к текущему). Все действия логируются.
                 </p>
               </div>
             </div>
