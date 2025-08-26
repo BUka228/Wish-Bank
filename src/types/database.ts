@@ -42,7 +42,7 @@ export interface Transaction {
   id: string;
   user_id: string;
   type: 'credit' | 'debit';
-  wish_type: 'green' | 'blue' | 'red';
+  wish_type: 'green' | 'blue' | 'red' | null; // NULL for mana-only transactions
   amount: number;
   mana_amount: number;
   reason: string;

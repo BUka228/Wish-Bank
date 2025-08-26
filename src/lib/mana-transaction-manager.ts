@@ -194,16 +194,24 @@ export class ManaTransactionManager {
           INSERT INTO transactions (
             user_id, 
             type, 
+            wish_type,
+            amount,
             mana_amount, 
             reason, 
+            transaction_category,
             transaction_source,
+            experience_gained,
             metadata
           ) VALUES (
             ${transactionData.userId},
             'debit',
+            NULL,
+            0,
             ${transactionData.amount},
             ${transactionData.reason},
+            'manual',
             'mana_transaction_manager',
+            0,
             ${JSON.stringify({
               transaction_id: transactionId,
               previous_balance: currentBalance,
@@ -287,16 +295,24 @@ export class ManaTransactionManager {
           INSERT INTO transactions (
             user_id, 
             type, 
+            wish_type,
+            amount,
             mana_amount, 
             reason, 
+            transaction_category,
             transaction_source,
+            experience_gained,
             metadata
           ) VALUES (
             ${transactionData.userId},
             'credit',
+            NULL,
+            0,
             ${transactionData.amount},
             ${transactionData.reason},
+            'manual',
             'mana_transaction_manager',
+            0,
             ${JSON.stringify({
               transaction_id: transactionId,
               previous_balance: currentBalance,
@@ -430,18 +446,26 @@ export class ManaTransactionManager {
           INSERT INTO transactions (
             user_id, 
             type, 
+            wish_type,
+            amount,
             mana_amount, 
             reason, 
+            transaction_category,
             transaction_source,
             enhancement_id,
+            experience_gained,
             metadata
           ) VALUES (
             ${transactionData.userId},
             'debit',
+            NULL,
+            0,
             ${transactionData.cost},
             'enhancement_${transactionData.enhancementType}',
+            'enhancement',
             'mana_transaction_manager',
             ${enhancement.id},
+            0,
             ${JSON.stringify({
               transaction_id: transactionId,
               wish_id: transactionData.wishId,
@@ -536,16 +560,24 @@ export class ManaTransactionManager {
           INSERT INTO transactions (
             user_id, 
             type, 
+            wish_type,
+            amount,
             mana_amount, 
             reason, 
+            transaction_category,
             transaction_source,
+            experience_gained,
             metadata
           ) VALUES (
             ${userId},
             'credit',
+            NULL,
+            0,
             ${totalMana},
             'legacy_currency_migration',
+            'migration',
             'mana_transaction_manager',
+            0,
             ${JSON.stringify({
               transaction_id: transactionId,
               migration_data: {
