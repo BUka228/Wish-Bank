@@ -244,18 +244,46 @@ export async function getAdminAuditLog(
         LIMIT ${limit} OFFSET ${offset}
       `;
       
-      return result.map((row: any) => ({
-        id: row.id,
-        admin_user_id: row.admin_user_id,
-        target_user_id: row.target_user_id,
-        action_type: row.action_type,
-        old_values: row.old_values ? JSON.parse(row.old_values) : null,
-        new_values: row.new_values ? JSON.parse(row.new_values) : null,
-        reason: row.reason,
-        ip_address: row.ip_address,
-        user_agent: row.user_agent,
-        created_at: new Date(row.created_at)
-      }));
+      return result.map((row: any) => {
+        let oldValues = null;
+        let newValues = null;
+        
+        // Safely parse JSON values
+        if (row.old_values && typeof row.old_values === 'string') {
+          try {
+            oldValues = JSON.parse(row.old_values);
+          } catch (e) {
+            console.warn('Failed to parse old_values JSON:', e);
+            oldValues = row.old_values;
+          }
+        } else if (row.old_values && typeof row.old_values === 'object') {
+          oldValues = row.old_values;
+        }
+        
+        if (row.new_values && typeof row.new_values === 'string') {
+          try {
+            newValues = JSON.parse(row.new_values);
+          } catch (e) {
+            console.warn('Failed to parse new_values JSON:', e);
+            newValues = row.new_values;
+          }
+        } else if (row.new_values && typeof row.new_values === 'object') {
+          newValues = row.new_values;
+        }
+        
+        return {
+          id: row.id,
+          admin_user_id: row.admin_user_id,
+          target_user_id: row.target_user_id,
+          action_type: row.action_type,
+          old_values: oldValues,
+          new_values: newValues,
+          reason: row.reason,
+          ip_address: row.ip_address,
+          user_agent: row.user_agent,
+          created_at: new Date(row.created_at)
+        };
+      });
     } else {
       // For filtered queries, we'll need to use a different approach
       // This is a simplified version - in production you'd want more sophisticated filtering
@@ -295,18 +323,46 @@ export async function getAdminAuditLog(
         filteredResult = filteredResult.filter((row: any) => new Date(row.created_at) <= endDate);
       }
       
-      return filteredResult.map((row: any) => ({
-        id: row.id,
-        admin_user_id: row.admin_user_id,
-        target_user_id: row.target_user_id,
-        action_type: row.action_type,
-        old_values: row.old_values ? JSON.parse(row.old_values) : null,
-        new_values: row.new_values ? JSON.parse(row.new_values) : null,
-        reason: row.reason,
-        ip_address: row.ip_address,
-        user_agent: row.user_agent,
-        created_at: new Date(row.created_at)
-      }));
+      return filteredResult.map((row: any) => {
+        let oldValues = null;
+        let newValues = null;
+        
+        // Safely parse JSON values
+        if (row.old_values && typeof row.old_values === 'string') {
+          try {
+            oldValues = JSON.parse(row.old_values);
+          } catch (e) {
+            console.warn('Failed to parse old_values JSON:', e);
+            oldValues = row.old_values;
+          }
+        } else if (row.old_values && typeof row.old_values === 'object') {
+          oldValues = row.old_values;
+        }
+        
+        if (row.new_values && typeof row.new_values === 'string') {
+          try {
+            newValues = JSON.parse(row.new_values);
+          } catch (e) {
+            console.warn('Failed to parse new_values JSON:', e);
+            newValues = row.new_values;
+          }
+        } else if (row.new_values && typeof row.new_values === 'object') {
+          newValues = row.new_values;
+        }
+        
+        return {
+          id: row.id,
+          admin_user_id: row.admin_user_id,
+          target_user_id: row.target_user_id,
+          action_type: row.action_type,
+          old_values: oldValues,
+          new_values: newValues,
+          reason: row.reason,
+          ip_address: row.ip_address,
+          user_agent: row.user_agent,
+          created_at: new Date(row.created_at)
+        };
+      });
     }
   } catch (error) {
     console.error('Error retrieving admin audit log:', error);

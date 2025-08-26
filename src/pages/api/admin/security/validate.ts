@@ -8,7 +8,8 @@ import { withAdminAuth, getAdminConfigStatus, isAdminOperationAllowed } from '..
  * This endpoint validates admin access and returns admin configuration status
  */
 export default withAdminAuth(async (req: NextApiRequest, res: NextApiResponse, adminUser) => {
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.setHeader('Allow', ['GET', 'HEAD']);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -16,7 +17,7 @@ export default withAdminAuth(async (req: NextApiRequest, res: NextApiResponse, a
     const configStatus = getAdminConfigStatus();
     const operationsAllowed = isAdminOperationAllowed();
 
-    return res.status(200).json({
+    const responseData = {
       success: true,
       admin: {
         id: adminUser.id,
@@ -30,7 +31,14 @@ export default withAdminAuth(async (req: NextApiRequest, res: NextApiResponse, a
         operations_allowed: operationsAllowed
       },
       timestamp: new Date().toISOString()
-    });
+    };
+
+    // For HEAD requests, only send status and headers, no body
+    if (req.method === 'HEAD') {
+      return res.status(200).end();
+    }
+
+    return res.status(200).json(responseData);
   } catch (error: any) {
     console.error('Admin validation error:', error);
     return res.status(500).json({
