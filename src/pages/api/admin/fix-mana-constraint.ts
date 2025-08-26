@@ -6,6 +6,14 @@
 import { sql } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
+  // Support GET and HEAD methods for complete functionality
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    return res.status(200).json({ 
+      message: 'Mana constraint migration endpoint', 
+      description: 'POST to deploy the migration that fixes wish_type constraint'
+    });
+  }
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
