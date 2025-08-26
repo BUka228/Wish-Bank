@@ -18,14 +18,9 @@ interface EnhancedNavigationProps {
     weekly_quota_used?: number;
     monthly_quota_used?: number;
   };
-  notifications?: {
-    quests: number;
-    events: number;
-    wishes: number;
-  };
 }
 
-export default function EnhancedNavigation({ currentUser, notifications }: EnhancedNavigationProps) {
+export default function EnhancedNavigation({ currentUser }: EnhancedNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { isAdmin, isLoading: adminLoading } = useAdmin();
@@ -45,43 +40,37 @@ export default function EnhancedNavigation({ currentUser, notifications }: Enhan
       href: '/quests',
       icon: '🎯',
       label: 'Квесты',
-      color: 'purple',
-      notifications: notifications?.quests || 0
+      color: 'purple'
     },
     {
       href: '/events',
       icon: '🎲',
       label: 'События',
-      color: 'green',
-      notifications: notifications?.events || 0
+      color: 'green'
     },
     {
       href: '/wishes',
       icon: '⭐',
       label: 'Желания',
-      color: 'pink',
-      notifications: notifications?.wishes || 0
+      color: 'pink'
     },
     {
       href: '/economy',
       icon: '💰',
       label: 'Экономика',
-      color: 'yellow',
-      notifications: 0
+      color: 'yellow'
     },
     {
       href: '/ranks',
       icon: '🏆',
       label: 'Ранги',
-      color: 'orange',
-      notifications: 0
+      color: 'orange'
     },
     {
       href: '/rules',
       icon: '📋',
       label: 'Правила',
-      color: 'gray',
-      notifications: 0
+      color: 'gray'
     }
   ];
 
@@ -91,15 +80,13 @@ export default function EnhancedNavigation({ currentUser, notifications }: Enhan
       href: '/admin/control-panel',
       icon: '⚙️',
       label: 'Панель управления',
-      color: 'red',
-      notifications: 0
+      color: 'red'
     },
     {
       href: '/admin/mana',
       icon: '🔮',
       label: 'Управление маной',
-      color: 'purple',
-      notifications: 0
+      color: 'purple'
     }
   ];
 
@@ -125,31 +112,22 @@ export default function EnhancedNavigation({ currentUser, notifications }: Enhan
         className="fixed top-4 right-4 z-50 p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 hover:shadow-xl transition-all duration-200"
         aria-label="Меню"
       >
-        <div className="relative">
-          <div className="w-6 h-6 flex flex-col justify-center items-center">
-            <span
-              className={`block w-6 h-0.5 bg-gray-600 dark:bg-gray-300 transition-all duration-300 ${
-                isOpen ? 'rotate-45 translate-y-1.5' : ''
-              }`}
-            />
-            <span
-              className={`block w-6 h-0.5 bg-gray-600 dark:bg-gray-300 transition-all duration-300 mt-1 ${
-                isOpen ? 'opacity-0' : ''
-              }`}
-            />
-            <span
-              className={`block w-6 h-0.5 bg-gray-600 dark:bg-gray-300 transition-all duration-300 mt-1 ${
-                isOpen ? '-rotate-45 -translate-y-1.5' : ''
-              }`}
-            />
-          </div>
-          
-          {/* Total notifications badge */}
-          {(notifications?.quests || 0) + (notifications?.events || 0) + (notifications?.wishes || 0) > 0 && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-              {Math.min(99, (notifications?.quests || 0) + (notifications?.events || 0) + (notifications?.wishes || 0))}
-            </div>
-          )}
+        <div className="w-6 h-6 flex flex-col justify-center items-center">
+          <span
+            className={`block w-6 h-0.5 bg-gray-600 dark:bg-gray-300 transition-all duration-300 ${
+              isOpen ? 'rotate-45 translate-y-1.5' : ''
+            }`}
+          />
+          <span
+            className={`block w-6 h-0.5 bg-gray-600 dark:bg-gray-300 transition-all duration-300 mt-1 ${
+              isOpen ? 'opacity-0' : ''
+            }`}
+          />
+          <span
+            className={`block w-6 h-0.5 bg-gray-600 dark:bg-gray-300 transition-all duration-300 mt-1 ${
+              isOpen ? '-rotate-45 -translate-y-1.5' : ''
+            }`}
+          />
         </div>
       </button>
 
@@ -231,13 +209,6 @@ export default function EnhancedNavigation({ currentUser, notifications }: Enhan
                   <span className="text-xl">{item.icon}</span>
                 </div>
                 <span className="font-medium text-gray-700 dark:text-gray-200 flex-1">{item.label}</span>
-                
-                {/* Individual notifications */}
-                {item.notifications > 0 && (
-                  <div className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {Math.min(99, item.notifications)}
-                  </div>
-                )}
               </Link>
             ))}
 
@@ -265,13 +236,6 @@ export default function EnhancedNavigation({ currentUser, notifications }: Enhan
                       <span className="text-xl">{item.icon}</span>
                     </div>
                     <span className="font-medium text-red-700 dark:text-red-300 flex-1">{item.label}</span>
-                    
-                    {/* Individual notifications */}
-                    {item.notifications > 0 && (
-                      <div className="w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                        {Math.min(99, item.notifications)}
-                      </div>
-                    )}
                   </Link>
                 ))}
               </>

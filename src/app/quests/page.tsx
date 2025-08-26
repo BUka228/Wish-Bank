@@ -6,7 +6,7 @@ import { Quest } from '@/types/quest-economy';
 import QuestBoard from '@/components/quests/QuestBoard';
 import QuestCreator from '@/components/quests/QuestCreator';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
-import NotificationSystem from '@/components/NotificationSystem';
+
 import { MobileOptimizedModal, TouchOptimizedButton } from '@/components/TouchInteractions';
 
 export default function QuestsPage() {
@@ -137,7 +137,7 @@ export default function QuestsPage() {
       {currentUser && (
         <>
           <EnhancedNavigation currentUser={currentUser} />
-          <NotificationSystem userId={currentUser.id} />
+
         </>
       )}
       

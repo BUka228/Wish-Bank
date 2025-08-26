@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { sharedWishNotificationSystem } from '@/lib/shared-wish-notifications';
+import { sharedWishNotifications } from '@/lib/shared-wish-notifications';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -25,7 +25,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       // Process delayed notifications
-      results.delayedNotifications = await sharedWishNotificationSystem.processDelayedNotifications();
+      // Since we removed in-app notifications, this would be a placeholder
+      // for any delayed notification processing if needed in the future
+      results.delayedNotifications = 0;
     } catch (error) {
       console.error('Error processing delayed notifications:', error);
       results.errors.push('Failed to process delayed notifications');
@@ -33,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       // Send reminder notifications
-      results.reminders = await sharedWishNotificationSystem.checkAndSendReminders();
+      results.reminders = await sharedWishNotifications.checkAndSendSharedWishReminders();
     } catch (error) {
       console.error('Error sending reminders:', error);
       results.errors.push('Failed to send reminder notifications');

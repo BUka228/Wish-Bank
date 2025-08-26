@@ -1,8 +1,13 @@
-import { RandomEvent, NotificationData } from '../types/quest-economy';
+import { RandomEvent } from '../types/quest-economy';
+import { 
+  sendEventNotification,
+  getUserTelegramChatId,
+  sendSystemNotification
+} from './telegram';
 
 /**
- * Event Notification System
- * Handles sending notifications for random events
+ * Event Notification System - Telegram Integration
+ * Handles sending Telegram notifications for random events
  */
 export class EventNotificationSystem {
   
@@ -10,122 +15,139 @@ export class EventNotificationSystem {
    * Send notification when a new event is available
    */
   async sendEventAvailableNotification(event: RandomEvent): Promise<void> {
-    const notification: NotificationData = {
-      type: 'event_available',
-      title: 'Новое случайное событие! 🎲',
-      message: `У вас появилось новое событие: "${event.title}". Награда: ${event.reward_amount} ${event.reward_type}. Событие истекает через 24 часа.`,
-      recipient_id: event.user_id,
-      data: {
-        reference_id: event.id,
-        event_title: event.title,
-        reward_amount: event.reward_amount,
-        reward_type: event.reward_type,
-        experience_reward: event.experience_reward,
-        expires_at: event.expires_at.toISOString()
+    try {
+      const chatId = await getUserTelegramChatId(event.user_id);
+      if (!chatId) {
+        console.warn(`No Telegram chat ID found for user ${event.user_id}`);
+        return;
       }
-    };
 
-    await this.sendNotification(notification);
+      await sendEventNotification(
+        chatId,
+        'available',
+        event.title,
+        {
+          reward_amount: event.reward_amount,
+          reward_type: event.reward_type,
+          experience_reward: event.experience_reward,
+          expires_at: event.expires_at.toISOString()
+        }
+      );
+    } catch (error) {
+      console.error('Failed to send event available notification:', error);
+      throw error;
+    }
   }
 
   /**
    * Send notification when an event is completed
    */
   async sendEventCompletedNotification(event: RandomEvent, completedBy: string): Promise<void> {
-    // Notification to the event owner
-    const ownerNotification: NotificationData = {
-      type: 'event_completed',
-      title: 'Событие выполнено! ✅',
-      message: `Ваше событие "${event.title}" было отмечено как выполненное! Награда начислена: ${event.reward_amount} ${event.reward_type} + ${event.experience_reward} опыта.`,
-      recipient_id: event.user_id,
-      data: {
-        sender_id: completedBy,
-        reference_id: event.id,
-        event_title: event.title,
-        reward_amount: event.reward_amount,
-        reward_type: event.reward_type,
-        experience_reward: event.experience_reward
+    try {
+      // Notification to the event owner
+      const ownerChatId = await getUserTelegramChatId(event.user_id);
+      if (ownerChatId) {
+        await sendEventNotification(
+          ownerChatId,
+          'completed',
+          event.title,
+          {
+            reward_amount: event.reward_amount,
+            reward_type: event.reward_type,
+            experience_reward: event.experience_reward,
+            completed_by: completedBy
+          }
+        );
       }
-    };
 
-    // Notification to the partner who completed it
-    const partnerNotification: NotificationData = {
-      type: 'event_validated',
-      title: 'Событие засчитано! 👏',
-      message: `Вы засчитали выполнение события "${event.title}" для вашего партнера.`,
-      recipient_id: completedBy,
-      data: {
-        sender_id: event.user_id,
-        reference_id: event.id,
-        event_title: event.title,
-        reward_amount: event.reward_amount,
-        reward_type: event.reward_type
+      // Notification to the partner who completed it
+      const partnerChatId = await getUserTelegramChatId(completedBy);
+      if (partnerChatId) {
+        await sendSystemNotification(
+          partnerChatId,
+          'Событие засчитано! 👏',
+          `Вы засчитали выполнение события "${event.title}" для вашего партнера.`,
+          'normal'
+        );
       }
-    };
-
-    await Promise.all([
-      this.sendNotification(ownerNotification),
-      this.sendNotification(partnerNotification)
-    ]);
+    } catch (error) {
+      console.error('Failed to send event completed notifications:', error);
+      throw error;
+    }
   }
 
   /**
    * Send notification when an event expires
    */
   async sendEventExpiredNotification(event: RandomEvent): Promise<void> {
-    const notification: NotificationData = {
-      type: 'event_expired',
-      title: 'Событие истекло ⏰',
-      message: `Событие "${event.title}" истекло и было заменено новым. Проверьте ваши активные события!`,
-      recipient_id: event.user_id,
-      data: {
-        reference_id: event.id,
-        event_title: event.title,
-        expired_at: new Date().toISOString()
+    try {
+      const chatId = await getUserTelegramChatId(event.user_id);
+      if (!chatId) {
+        console.warn(`No Telegram chat ID found for user ${event.user_id}`);
+        return;
       }
-    };
 
-    await this.sendNotification(notification);
+      await sendEventNotification(
+        chatId,
+        'expired',
+        event.title,
+        {
+          expired_at: new Date().toISOString()
+        }
+      );
+    } catch (error) {
+      console.error('Failed to send event expired notification:', error);
+      throw error;
+    }
   }
 
   /**
    * Send reminder notification for events expiring soon
    */
   async sendEventReminderNotification(event: RandomEvent, hoursRemaining: number): Promise<void> {
-    const notification: NotificationData = {
-      type: 'event_reminder',
-      title: `Событие истекает через ${hoursRemaining} ч. ⏳`,
-      message: `Не забудьте выполнить событие "${event.title}"! Осталось ${hoursRemaining} часов до истечения.`,
-      recipient_id: event.user_id,
-      data: {
-        reference_id: event.id,
-        event_title: event.title,
-        hours_remaining: hoursRemaining,
-        expires_at: event.expires_at.toISOString()
+    try {
+      const chatId = await getUserTelegramChatId(event.user_id);
+      if (!chatId) {
+        console.warn(`No Telegram chat ID found for user ${event.user_id}`);
+        return;
       }
-    };
 
-    await this.sendNotification(notification);
+      await sendEventNotification(
+        chatId,
+        'reminder',
+        event.title,
+        {
+          hours_remaining: hoursRemaining,
+          expires_at: event.expires_at.toISOString()
+        }
+      );
+    } catch (error) {
+      console.error('Failed to send event reminder notification:', error);
+      throw error;
+    }
   }
 
   /**
    * Send notification when a new event is generated after completion
    */
   async sendNewEventGeneratedNotification(userId: string, newEvent: RandomEvent): Promise<void> {
-    const notification: NotificationData = {
-      type: 'new_event_generated',
-      title: 'Новое событие сгенерировано! 🎯',
-      message: `После выполнения предыдущего события для вас сгенерировано новое: "${newEvent.title}".`,
-      recipient_id: userId,
-      data: {
-        reference_id: newEvent.id,
-        event_title: newEvent.title,
-        reward_amount: newEvent.reward_amount,
-        reward_type: newEvent.reward_type
+    try {
+      const chatId = await getUserTelegramChatId(userId);
+      if (!chatId) {
+        console.warn(`No Telegram chat ID found for user ${userId}`);
+        return;
       }
-    };
 
-    await this.sendNotification(notification);
+      await sendSystemNotification(
+        chatId,
+        'Новое событие сгенерировано! 🎯',
+        `После выполнения предыдущего события для вас сгенерировано новое: "${newEvent.title}".`,
+        'normal'
+      );
+    } catch (error) {
+      console.error('Failed to send new event generated notification:', error);
+      throw error;
+    }
   }
 
   /**
@@ -142,15 +164,14 @@ export class EventNotificationSystem {
 
     for (const userId of userIds) {
       try {
-        const notification: NotificationData = {
-          type: 'system_event',
-          title,
-          message,
-          recipient_id: userId,
-          data: data || {}
-        };
+        const chatId = await getUserTelegramChatId(userId);
+        if (!chatId) {
+          console.warn(`No Telegram chat ID found for user ${userId}`);
+          failed++;
+          continue;
+        }
 
-        await this.sendNotification(notification);
+        await sendSystemNotification(chatId, title, message, 'normal');
         sent++;
       } catch (error) {
         console.error(`Failed to send system notification to user ${userId}:`, error);
@@ -193,54 +214,37 @@ export class EventNotificationSystem {
    * Get events that need reminder notifications
    */
   private async getEventsNeedingReminders(): Promise<RandomEvent[]> {
-    // TODO: Implement database query to get events expiring soon
-    // This would need a new database function
-    return [];
-  }
-
-  /**
-   * Send notification through the notification system
-   */
-  private async sendNotification(notification: NotificationData): Promise<void> {
     try {
-      // TODO: Integrate with actual notification service
-      // This could be:
-      // - Telegram bot notifications
-      // - Push notifications
-      // - In-app notifications
-      // - Email notifications
+      const { sql } = await import('./db-pool');
+      const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
       
-      console.log('Sending event notification:', {
-        type: notification.type,
-        title: notification.title,
-        recipient: notification.recipient_id,
-        message: notification.message.substring(0, 100) + '...'
-      });
+      const result = await sql`
+        SELECT 
+          id,
+          user_id,
+          title,
+          description,
+          reward_amount,
+          reward_type,
+          experience_reward,
+          expires_at,
+          status,
+          created_at
+        FROM random_events 
+        WHERE 
+          status = 'active'
+          AND expires_at <= ${twoHoursFromNow}
+          AND expires_at > NOW()
+          AND last_reminder_sent < (NOW() - INTERVAL '1 hour')
+      `;
       
-      // For now, just log the notification
-      // In a real implementation, this would call the notification service
+      return result as RandomEvent[];
     } catch (error) {
-      console.error('Failed to send notification:', error);
-      throw error;
+      console.error('Error getting events needing reminders:', error);
+      return [];
     }
-  }
-
-  /**
-   * Get notification statistics
-   */
-  async getNotificationStats(): Promise<{
-    totalSent: number;
-    sentToday: number;
-    byType: Record<string, number>;
-  }> {
-    // TODO: Implement notification statistics from database
-    return {
-      totalSent: 0,
-      sentToday: 0,
-      byType: {}
-    };
   }
 }
 
-// Export singleton instance
-export const eventNotificationSystem = new EventNotificationSystem();
+// Export an instance for use throughout the application
+export const eventNotifications = new EventNotificationSystem();

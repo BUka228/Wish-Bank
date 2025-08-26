@@ -6,7 +6,7 @@ import { EnhancedWish } from '@/types/quest-economy';
 import WishTabs from '@/components/wishes/WishTabs';
 import MobileOptimizedWishTabs from '@/components/wishes/MobileOptimizedWishTabs';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
-import NotificationSystem from '@/components/NotificationSystem';
+
 import { useDeviceDetection } from '@/lib/mobile-detection';
 import ResponsiveLayout, { OrientationAwareHeader } from '@/components/ResponsiveLayout';
 
@@ -160,7 +160,7 @@ export default function WishesPage() {
       {currentUser && (
         <>
           <EnhancedNavigation currentUser={currentUser} />
-          <NotificationSystem userId={currentUser.id} />
+
         </>
       )}
       

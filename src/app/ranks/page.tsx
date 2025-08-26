@@ -8,7 +8,7 @@ import RankProgress from '@/components/ranks/RankProgress';
 import RankPrivileges from '@/components/ranks/RankPrivileges';
 import ExperienceTracker from '@/components/ranks/ExperienceTracker';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
-import NotificationSystem from '@/components/NotificationSystem';
+
 
 export default function RanksPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -145,7 +145,7 @@ export default function RanksPage() {
       {currentUser && (
         <>
           <EnhancedNavigation currentUser={currentUser} />
-          <NotificationSystem userId={currentUser.id} />
+
         </>
       )}
       

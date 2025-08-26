@@ -190,8 +190,8 @@ async function handler(
 
     // Send notifications to users
     try {
-      const { sharedWishNotificationSystem } = await import('@/lib/shared-wish-notifications');
-      const notificationResult = await sharedWishNotificationSystem.sendSharedWishCreatedNotification(
+      const { sharedWishNotifications } = await import('@/lib/shared-wish-notifications');
+      const notificationResult = await sharedWishNotifications.sendSharedWishCreatedNotification(
         sharedWishId,
         description,
         isGlobal,

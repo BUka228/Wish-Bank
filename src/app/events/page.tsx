@@ -6,7 +6,7 @@ import { RandomEvent } from '@/types/quest-economy';
 import EventCard from '@/components/events/EventCard';
 import EventHistory from '@/components/events/EventHistory';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
-import NotificationSystem from '@/components/NotificationSystem';
+
 
 export default function EventsPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -165,7 +165,7 @@ export default function EventsPage() {
       {currentUser && (
         <>
           <EnhancedNavigation currentUser={currentUser} />
-          <NotificationSystem userId={currentUser.id} />
+
         </>
       )}
       

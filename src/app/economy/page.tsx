@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { User } from '@/types/database';
 import EconomyDashboard from '@/components/economy/EconomyDashboard';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
-import NotificationSystem from '@/components/NotificationSystem';
+
 
 export default function EconomyPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -111,7 +111,7 @@ export default function EconomyPage() {
       {currentUser && (
         <>
           <EnhancedNavigation currentUser={currentUser} />
-          <NotificationSystem userId={currentUser.id} />
+
         </>
       )}
       

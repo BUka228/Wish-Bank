@@ -133,12 +133,9 @@ describe('Admin Control Panel Integration', () => {
   });
 
   it('should integrate notification system components', async () => {
-    const { default: InAppNotificationHistory } = await import('../../components/notifications/InAppNotificationHistory');
-    const { default: NotificationSettings } = await import('../../components/notifications/NotificationSettings');
+    // Notification system is now Telegram-only, no in-app components
     const { SharedWishNotificationSystem } = await import('../../lib/shared-wish-notifications');
 
-    expect(InAppNotificationHistory).toBeDefined();
-    expect(NotificationSettings).toBeDefined();
     expect(SharedWishNotificationSystem).toBeDefined();
   });
 

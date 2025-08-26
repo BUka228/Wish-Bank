@@ -2,7 +2,7 @@ import { questEngine } from './quest-engine';
 import { eventGenerator } from './event-generator';
 import { economyEngine } from './economy-engine';
 import { rankCalculator } from './rank-calculator';
-import { eventNotificationSystem } from './event-notifications';
+import { eventNotifications } from './event-notifications';
 import { economyMetricsCollector } from './economy-metrics';
 import { 
   getExpiredQuests,
@@ -339,7 +339,7 @@ export class BackgroundServices {
     try {
       console.log('Processing event reminders...');
       
-      const remindersSent = await eventNotificationSystem.checkAndSendEventReminders();
+      const remindersSent = await eventNotifications.checkAndSendEventReminders();
       
       if (remindersSent > 0) {
         console.log(`Sent ${remindersSent} event reminders`);

@@ -7,7 +7,7 @@ import ManaDisplay from '@/components/ManaDisplay';
 import ManaQuickActions from '@/components/ManaQuickActions';
 import WishCard from '@/components/WishCard';
 import EnhancedNavigation from '@/components/EnhancedNavigation';
-import NotificationSystem from '@/components/NotificationSystem';
+
 import AdminDebugInfo from '@/components/AdminDebugInfo';
 
 export default function Home() {
@@ -293,7 +293,7 @@ export default function Home() {
       {currentUser && (
         <>
           <EnhancedNavigation currentUser={currentUser} />
-          <NotificationSystem userId={currentUser.id} />
+
         </>
       )}
       

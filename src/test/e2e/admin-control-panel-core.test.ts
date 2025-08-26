@@ -55,8 +55,7 @@ describe('Admin Control Panel Core Functionality', () => {
 
     it('should successfully import notification components', async () => {
       const notificationComponents = await Promise.all([
-        import('../../components/notifications/InAppNotificationHistory'),
-        import('../../components/notifications/NotificationSettings'),
+        // Removed notification components as they are now Telegram-only
         import('../../lib/shared-wish-notifications')
       ]);
 
